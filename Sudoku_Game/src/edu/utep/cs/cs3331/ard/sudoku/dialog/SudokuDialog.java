@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
@@ -20,12 +21,14 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import edu.utep.cs.cs3331.ard.sudoku.model.Board;
 import edu.utep.cs.cs3331.ard.sudoku.net.JsonClient;
-import edu.utep.cs.cs3331.ard.sudoku.net.JsonInfo;
 
 /**
  * Dialog template for playing simple Sudoku games.
@@ -33,7 +36,7 @@ import edu.utep.cs.cs3331.ard.sudoku.net.JsonInfo;
  * @author		Yoonsik Cheon
  * @author		Anthony DesArmier
  * @author 		Trevor McCarthy
- * @version     1.1.1
+ * @version     1.2
  */
 @SuppressWarnings("serial")
 public class SudokuDialog extends JFrame {
@@ -62,9 +65,6 @@ public class SudokuDialog extends JFrame {
     /** Message bar to display various messages. */
     private JLabel msgBar = new JLabel("");
 
-    /** Last number value selected. */
-	private int lastValue = 0;
-
     /** Create a new dialog with default values. */
     public SudokuDialog() {
     	this(DEFAULT_DIM, DEFAULT_SIZE, DEFAULT_DIFFICULTY);
@@ -86,16 +86,15 @@ public class SudokuDialog extends JFrame {
     public SudokuDialog(Dimension dim, int size, int difficulty) {
         super("Sudoku");
         setSize(dim);
-        board = new Board(JsonClient.requestBoard(size, difficulty));
+        //board = new Board(JsonClient.requestBoard(size, difficulty));
+        board = new Board(size, difficulty);
         boardPanel = new BoardPanel(board, this::boardClicked);
         configureUI();
         configureSound();
-        //setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
+        setResizable(false);
         setVisible(true);
-        //setResizable(false);
-        showMessage("Selected Number: 0");
     }
 
 	/**
@@ -104,16 +103,9 @@ public class SudokuDialog extends JFrame {
      * @param y 0-based column index of the clicked square.
      */
     private void boardClicked(int x, int y) {
-    	//showMessage(String.format("Board clicked: x = %d, y = %d",  x, y));
 		playClick();
-    	board.update(new int[] {x,y,lastValue});
-    	boardPanel.repaint();
-    	if(board.isSolved()) {
-    		JOptionPane.showMessageDialog(null,
-    			    "The board has been completed!\nClick on a new game to play again.",
-    			    "Finished!", JOptionPane.INFORMATION_MESSAGE);
-    		playClick();
-    	}
+		board.select(x, y);
+		boardPanel.repaint();
     }
     
     /**
@@ -121,9 +113,9 @@ public class SudokuDialog extends JFrame {
      * @param number clicked number (1-9), or 0 for "X".
      */
     private void numberClicked(int number) {
-		playClick();
-        showMessage("Selected Number: " + number);
-        lastValue = number;
+    	playClick();
+    	board.update(number);
+    	boardPanel.repaint();
     }
     
     /**
@@ -132,18 +124,15 @@ public class SudokuDialog extends JFrame {
      * otherwise, prompt the user for a confirmation and then proceed
      * accordingly.
      * @param size requested puzzle size, either 4 or 9.
+     * @deprecated
      */
     private void newClicked(int size) {
-        //showMessage("New clicked: " + size);
-		playClick();
     	int x = JOptionPane.showConfirmDialog(null, String.format("Start a new %dx%d game?", size, size),
     			"New Game", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-    	playClick();
     	if(x==0) {
     		List<Integer> levels = JsonClient.getInfo().getLevels();
     		int difficulty = JOptionPane.showOptionDialog(null, "Choose Difficulty", "New Game",
     				JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, levels.toArray(), levels.get(0));
-    		playClick();
     		if(difficulty!=-1) {
     			difficulty = levels.get(difficulty);
     			this.dispose();
@@ -164,6 +153,27 @@ public class SudokuDialog extends JFrame {
     private void configureUI() {
         setIconImage(createImageIcon("sudoku.png").getImage());
         setLayout(new BorderLayout());
+        
+        JMenuBar menuBar = new JMenuBar();
+        JMenu file = new JMenu("File");
+        file.setMnemonic(KeyEvent.VK_F);
+        JMenuItem newGame = new JMenuItem("New Game", /*new ImageIcon(""),*/ KeyEvent.VK_N);
+        newGame.addActionListener(e -> new NewPanel(this));
+        file.add(newGame);
+        JMenuItem exit = new JMenuItem("Quit", KeyEvent.VK_Q);
+        exit.addActionListener(e -> System.exit(0));
+        file.add(exit);
+        menuBar.add(file);
+        JMenu help = new JMenu("Help");
+        help.setMnemonic(KeyEvent.VK_H);
+        JMenuItem solve = new JMenuItem("Solve", /*new ImageIcon(""),*/ KeyEvent.VK_S);
+        solve.addActionListener(e -> {
+        	board.solve();
+        	boardPanel.repaint();
+        });
+        help.add(solve);
+        menuBar.add(help);
+        setJMenuBar(menuBar);
         
         JPanel buttons = makeControlPanel();
         // border: top, left, bottom, right
@@ -210,15 +220,11 @@ public class SudokuDialog extends JFrame {
      */
     private JPanel makeControlPanel() {
     	JPanel newButtons = new JPanel(new FlowLayout());
-        JButton new4Button = new JButton("New (4x4)");
-        for (JButton button: new JButton[] { new4Button, new JButton("New (9x9)") }) {
-        	button.setFocusPainted(false);
-            button.addActionListener(e -> {
-                newClicked(e.getSource() == new4Button ? 4 : 9);
-            });
-            newButtons.add(button);
-    	}
-    	newButtons.setAlignmentX(LEFT_ALIGNMENT);
+    	JButton newButton = new JButton("New");
+    	newButton.setFocusPainted(false);
+    	newButton.addActionListener(e -> new NewPanel(this));
+        newButtons.add(newButton);
+        newButtons.setAlignmentX(LEFT_ALIGNMENT);
         
     	// buttons labeled 1, 2, ..., 9, and X.
     	JPanel numberButtons = new JPanel(new FlowLayout());
@@ -258,19 +264,6 @@ public class SudokuDialog extends JFrame {
      * @param args not used.
      */
     public static void main(String[] args) {
-    	JsonInfo info = JsonClient.getInfo();
-    	List<Integer> sizes = info.getSizes();
-    	int size = JOptionPane.showOptionDialog(null, "Choose Board Size: ", "New Game",
-				JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, sizes.toArray(), sizes.get(0));
-    	if(size==-1)
-    		System.exit(0);
-    	size = sizes.get(size);
-    	List<Integer> levels = info.getLevels();
-    	int difficulty = JOptionPane.showOptionDialog(null, "Choose Difficulty", "New Game",
-				JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, levels.toArray(), levels.get(0));
-    	if(difficulty==-1)
-    		System.exit(0);
-    	difficulty = levels.get(difficulty);
-        new SudokuDialog(size, difficulty);
+    	new NewPanel();
     }
 }

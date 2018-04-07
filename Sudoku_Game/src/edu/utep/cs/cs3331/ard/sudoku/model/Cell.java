@@ -9,7 +9,7 @@ import java.util.Set;
  * @author      Anthony DesArmier
  * @version     1.2
  */
-public class Square {
+public class Cell {
 	
 	/** Various states a square may be in.
 	 * A fixed square is one that cannot be modified. */
@@ -17,19 +17,19 @@ public class Square {
 		NORMAL, SELECTED, ERROR, FIXED
 	}
 
-	/** Value of the square. */
+	/** Value of the cell. */
 	private int value;
 
-	/** States of the square. */
+	/** States of the cell. */
 	private Set<State> states;
 	
-	/** Creates a default empty square */
-	public Square() {
+	/** Creates a default empty cell. */
+	public Cell() {
 		this(0, State.NORMAL);
 	}
 	
-	/** Creates a square with a given value and state. */
-	public Square(int value, State state) {
+	/** Creates a cell with a given value and state. */
+	public Cell(int value, State state) {
 		this.value = value;
 		states = new HashSet<>();
 		states.add(state);
@@ -81,7 +81,7 @@ public class Square {
 	}
 	
 	/**
-	 * Compares this square's value with another value.
+	 * Compares this cell's value with another value.
 	 * @param value value to compare with.
 	 * @return true if equal, false otherwise.
 	 */

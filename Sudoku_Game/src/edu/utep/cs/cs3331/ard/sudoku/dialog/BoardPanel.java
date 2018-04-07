@@ -11,8 +11,8 @@ import java.awt.event.MouseEvent;
 import javax.swing.JPanel;
 
 import edu.utep.cs.cs3331.ard.sudoku.model.Board;
-import edu.utep.cs.cs3331.ard.sudoku.model.Square;
-import edu.utep.cs.cs3331.ard.sudoku.model.Square.State;
+import edu.utep.cs.cs3331.ard.sudoku.model.Cell;
+import edu.utep.cs.cs3331.ard.sudoku.model.Cell.State;
 
 /**
  * A special panel class to display a Sudoku board modeled by the
@@ -21,7 +21,7 @@ import edu.utep.cs.cs3331.ard.sudoku.model.Square.State;
  * @author		Anthony DesArmier
  * @author 		Trevor McCarthy
  * @author		Yoonsik Cheon
- * @version     1.2
+ * @version     1.2.1
  */
 @SuppressWarnings("serial")
 public class BoardPanel extends JPanel {
@@ -127,12 +127,12 @@ public class BoardPanel extends JPanel {
     		g.fillRect(lastIndex[0]*squareSize, lastIndex[1]*squareSize, squareSize, squareSize);
         }
         int x=0, y=0;
-        for(Square square : board.getGrid()) {
-        	if(square.getState().contains(State.FIXED)) {
+        for(Cell cell : board.getGrid()) {
+        	if(cell.getState().contains(State.FIXED)) {
         		g.setColor(FIXED_COLOR);
         		g.fillRect(x, y, squareSize, squareSize);
         	}
-        	if(square.getState().contains(State.ERROR)) {
+        	if(cell.getState().contains(State.ERROR)) {
         		g.setColor(ERROR_COLOR);
         		g.fillOval(x+squareSize/4, y+squareSize/4,
 	        			squareSize/2, squareSize/2);
