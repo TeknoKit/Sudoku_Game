@@ -3,20 +3,24 @@ package edu.utep.cs.cs3331.ard.sudoku.dialog;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
-import java.util.List;
+import java.util.ArrayList;
 
+import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -24,11 +28,11 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JToolBar;
+import javax.swing.KeyStroke;
 
 import edu.utep.cs.cs3331.ard.sudoku.model.Board;
-import edu.utep.cs.cs3331.ard.sudoku.net.JsonClient;
 
 /**
  * Dialog template for playing simple Sudoku games.
@@ -42,28 +46,27 @@ import edu.utep.cs.cs3331.ard.sudoku.net.JsonClient;
 public class SudokuDialog extends JFrame {
 
     /** Default dimension of the dialog. */
-    private final static Dimension DEFAULT_DIM = new Dimension(310, 430);
-    
+    private final static Dimension DEFAULT_DIM = new Dimension(330, 430);
     /** Default size of the Sudoku game board. */
     private final static int DEFAULT_SIZE = 9;
-    
     /** Default difficulty of the Sudoku game board. */
     private final static int DEFAULT_DIFFICULTY = 1;
-
-    /** Relative path to the resource directory. */
-    private final static String RES_DIR = "/";
     
     /** Click clip to be used on the panel. */
     private Clip clip;
-    
     /** Sudoku board. */
     private Board board;
-
     /** Special panel to display a Sudoku board. */
     private BoardPanel boardPanel;
-
     /** Message bar to display various messages. */
     private JLabel msgBar = new JLabel("");
+    /** List of buttons representing the number pad. */
+    private ArrayList<JButton> numPad = new ArrayList<>();
+    /** Whether the entire number pad needs to be enabled. */
+	private boolean numPadEnable;
+	
+	private JMenuItem input;
+	private JButton inputB;
 
     /** Create a new dialog with default values. */
     public SudokuDialog() {
@@ -106,6 +109,9 @@ public class SudokuDialog extends JFrame {
 		playClick();
 		board.select(x, y);
 		boardPanel.repaint();
+		showMessage("");
+		if(!board.isSameSelected())
+			handlePadEnables();
     }
     
     /**
@@ -114,31 +120,9 @@ public class SudokuDialog extends JFrame {
      */
     private void numberClicked(int number) {
     	playClick();
-    	board.update(number);
+    	board.update(number, true);
     	boardPanel.repaint();
-    }
-    
-    /**
-     * Callback to be invoked when a new button is clicked.
-     * If the current game is over, start a new game of the given size;
-     * otherwise, prompt the user for a confirmation and then proceed
-     * accordingly.
-     * @param size requested puzzle size, either 4 or 9.
-     * @deprecated
-     */
-    private void newClicked(int size) {
-    	int x = JOptionPane.showConfirmDialog(null, String.format("Start a new %dx%d game?", size, size),
-    			"New Game", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-    	if(x==0) {
-    		List<Integer> levels = JsonClient.getInfo().getLevels();
-    		int difficulty = JOptionPane.showOptionDialog(null, "Choose Difficulty", "New Game",
-    				JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, levels.toArray(), levels.get(0));
-    		if(difficulty!=-1) {
-    			difficulty = levels.get(difficulty);
-    			this.dispose();
-    			new SudokuDialog(DEFAULT_DIM, size, difficulty);
-    		}
-    	}
+    	showMessage("");
     }
 
     /**
@@ -151,48 +135,161 @@ public class SudokuDialog extends JFrame {
 
     /** Configure the UI. */
     private void configureUI() {
-        setIconImage(createImageIcon("sudoku.png").getImage());
+        setIconImage(createImageIcon("/sudoku.png").getImage());
         setLayout(new BorderLayout());
         
         JMenuBar menuBar = new JMenuBar();
-        JMenu file = new JMenu("File");
-        file.setMnemonic(KeyEvent.VK_F);
-        JMenuItem newGame = new JMenuItem("New Game", /*new ImageIcon(""),*/ KeyEvent.VK_N);
-        newGame.addActionListener(e -> new NewPanel(this));
-        file.add(newGame);
+        JMenu game = new JMenu("Game");
+        game.setMnemonic(KeyEvent.VK_G);
+        JMenuItem newGame = new JMenuItem("New Game", KeyEvent.VK_N);
+        newGame.setIcon(createImageIcon("/toolbarButtonGraphics/media/Play16.gif"));
+        newGame.addActionListener(e -> {playClick(); new NewPanel(this);});
+        newGame.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
+        game.add(newGame);
+        game.addSeparator();
         JMenuItem exit = new JMenuItem("Quit", KeyEvent.VK_Q);
-        exit.addActionListener(e -> System.exit(0));
-        file.add(exit);
-        menuBar.add(file);
+        exit.setIcon(createImageIcon("/toolbarButtonGraphics/general/Stop16.gif"));
+        exit.addActionListener(e -> shutDown());
+        exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
+        game.add(exit);
+        menuBar.add(game);
         JMenu help = new JMenu("Help");
         help.setMnemonic(KeyEvent.VK_H);
-        JMenuItem solve = new JMenuItem("Solve", /*new ImageIcon(""),*/ KeyEvent.VK_S);
-        solve.addActionListener(e -> {
-        	board.solve();
-        	boardPanel.repaint();
-        });
+        JMenuItem check = new JMenuItem("Check Progress", KeyEvent.VK_C);
+        check.setIcon(createImageIcon("/toolbarButtonGraphics/general/Information16.gif"));
+        check.addActionListener(new CheckListener());
+        check.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK));
+        help.add(check);
+        input = new JMenuItem("Input Guide", KeyEvent.VK_I);
+        input.setIcon(createImageIcon("/00s.png"));
+        input.addActionListener(new InputGuideListener());
+        input.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
+        help.add(input);
+        JMenuItem solve = new JMenuItem("Solve", KeyEvent.VK_S);
+        solve.setIcon(createImageIcon("/toolbarButtonGraphics/media/FastForward16.gif"));
+        solve.addActionListener(new SolveListener());
+        solve.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK));
         help.add(solve);
         menuBar.add(help);
         setJMenuBar(menuBar);
         
+        
+        JToolBar toolBar = new JToolBar();
+        JButton newGameB = new JButton(createImageIcon("/toolbarButtonGraphics/media/Play24.gif"));
+        newGameB.setToolTipText("Start a new game");
+    	newGameB.addActionListener(e -> {playClick(); new NewPanel(this);});
+    	newGameB.setFocusPainted(false);
+    	toolBar.add(newGameB);
+    	JButton checkB = new JButton(createImageIcon("/toolbarButtonGraphics/general/Information24.gif"));
+    	checkB.setToolTipText("Check if the board is solvable");
+    	checkB.addActionListener(new CheckListener());
+    	checkB.setFocusPainted(false);
+    	toolBar.add(checkB);
+    	inputB = new JButton(createImageIcon("/00m.png"));
+    	inputB.setToolTipText("Toggle input guide help modes");
+    	inputB.addActionListener(new InputGuideListener());
+    	inputB.setFocusPainted(false);
+    	toolBar.add(inputB);
+    	JButton solveB = new JButton(createImageIcon("/toolbarButtonGraphics/media/FastForward24.gif"));
+    	solveB.setToolTipText("Solve the board (if possible)");
+    	solveB.addActionListener(new SolveListener());
+    	solveB.setFocusPainted(false);
+    	toolBar.add(solveB);
+    	JButton undoB = new JButton(createImageIcon("/toolbarButtonGraphics/media/StepBack24.gif"));
+    	undoB.setToolTipText("Undo an action");
+    	undoB.addActionListener(new UndoListener());
+    	undoB.setFocusPainted(false);
+    	toolBar.add(undoB);
+    	JButton redoB = new JButton(createImageIcon("/toolbarButtonGraphics/media/StepForward24.gif"));
+    	redoB.setToolTipText("Redo an action");
+    	redoB.addActionListener(new RedoListener());
+    	redoB.setFocusPainted(false);
+    	toolBar.add(redoB);
+    	add(toolBar, BorderLayout.NORTH);
+    	
+    	JPanel mainPanel = new JPanel(); 
+    	mainPanel.setLayout(new GridBagLayout());
+    	GridBagConstraints c = new GridBagConstraints();
+    	
         JPanel buttons = makeControlPanel();
-        // border: top, left, bottom, right
-        buttons.setBorder(BorderFactory.createEmptyBorder(10,16,0,16));
-        add(buttons, BorderLayout.NORTH);
+        c.anchor = GridBagConstraints.PAGE_START;
+        c.gridx = 0;
+        c.gridy = 0;
+        mainPanel.add(buttons, c);
         
-        JPanel board = new JPanel();
-        board.setBorder(BorderFactory.createEmptyBorder(10,16,0,16));
-        board.setLayout(new GridLayout(1,1));
-        board.add(boardPanel);
-        add(board, BorderLayout.CENTER);
+        c = new GridBagConstraints();
+        c.weighty = 1.0; 
+        c.gridx = 0;
+        c.gridy = 1;
+        mainPanel.add(boardPanel, c);
         
-        msgBar.setBorder(BorderFactory.createEmptyBorder(10,16,10,0));
-        add(msgBar, BorderLayout.SOUTH);
+        msgBar.setPreferredSize(new Dimension(120, 12));
+        msgBar.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        c = new GridBagConstraints();
+        c.anchor = GridBagConstraints.LAST_LINE_START;
+        c.ipady = 12;
+        c.gridx = 0;
+        c.gridy = 2;
+        mainPanel.add(msgBar, c);
+        
+        add(mainPanel, BorderLayout.CENTER);
     }
+    
+    /** 
+     * Create a control panel consisting of number buttons.
+     * @return configured JPanel.
+     */
+    private JPanel makeControlPanel() {
+    	numPadEnable = false;
+    	// buttons labeled 1, 2, ..., 9, and X.
+    	JPanel numberButtons = new JPanel(new FlowLayout());
+    	int maxNumber = board.getSize() + 1;
+    	for (int i = 1; i <= maxNumber; i++) {
+            int number = i % maxNumber;
+            JButton button = new JButton(number == 0 ? "X" : String.valueOf(number));
+            button.setFocusPainted(false);
+            button.setMargin(new Insets(0,2,0,2));
+            button.addActionListener(e -> numberClicked(number));
+    		numberButtons.add(button);
+    		numPad.add(button);
+    	}
+    	return numberButtons;
+    }
+    
+    /** Configures the number pad buttons to be enabled or disabled based on the board guide state and selected cell. */
+	private void handlePadEnables() {
+		if(board.getLastSelectedFixed()) {
+			for (JButton num : numPad)
+				num.setEnabled(false);
+			numPadEnable = true;
+		}
+		else if(board.getGuideMode() == 0) {
+			if(numPadEnable)
+				for (JButton num : numPad)
+					num.setEnabled(true);
+			else return;
+		}
+		else if(board.getGuideMode() == 1 && board.cellSelected()) {
+			ArrayList<Integer> invalids = board.invalidInputs();
+			int n = 1;
+			for(JButton num : numPad) {
+				if (invalids.contains(n))
+					num.setEnabled(false);
+				else
+					num.setEnabled(true);
+				n++;
+			}
+			numPadEnable = true;
+		} else if(numPadEnable && board.getGuideMode() == 2 && board.cellSelected()) {
+			for (JButton num : numPad)
+				num.setEnabled(true);
+			numPadEnable = false;
+		}
+	}
     
     /** Configures sound clips. */
     private void configureSound() {
-    	URL soundURL = getClass().getResource(RES_DIR + "click.wav");
+    	URL soundURL = getClass().getResource("/click.wav");
     	try {
 			AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundURL);
 			clip = AudioSystem.getClip();
@@ -213,49 +310,28 @@ public class SudokuDialog extends JFrame {
     	clip.setFramePosition(0);
     	clip.start();
     }
-      
-    /** 
-     * Create a control panel consisting of new and number buttons.
-     * @return configured JPanel.
-     */
-    private JPanel makeControlPanel() {
-    	JPanel newButtons = new JPanel(new FlowLayout());
-    	JButton newButton = new JButton("New");
-    	newButton.setFocusPainted(false);
-    	newButton.addActionListener(e -> new NewPanel(this));
-        newButtons.add(newButton);
-        newButtons.setAlignmentX(LEFT_ALIGNMENT);
-        
-    	// buttons labeled 1, 2, ..., 9, and X.
-    	JPanel numberButtons = new JPanel(new FlowLayout());
-    	int maxNumber = board.getSize() + 1;
-    	for (int i = 1; i <= maxNumber; i++) {
-            int number = i % maxNumber;
-            JButton button = new JButton(number == 0 ? "X" : String.valueOf(number));
-            button.setFocusPainted(false);
-            button.setMargin(new Insets(0,2,0,2));
-            button.addActionListener(e -> numberClicked(number));
-    		numberButtons.add(button);
-    	}
-    	numberButtons.setAlignmentX(LEFT_ALIGNMENT);
-
-    	JPanel content = new JPanel();
-    	content.setLayout(new BoxLayout(content, BoxLayout.PAGE_AXIS));
-        content.add(newButtons);
-        content.add(numberButtons);
-        return content;
-    }
-
+	
     /**
      * Create an image icon from the given image file.
      * @return configured ImageIcon.
      */
     private ImageIcon createImageIcon(String filename) {
-        URL imageUrl = getClass().getResource(RES_DIR + filename);
-        if (imageUrl != null) {
-            return new ImageIcon(imageUrl);
-        }
+        //URL imageUrl = getClass().getResource(filename);
+    	BufferedImage image = null;
+		try {
+			image = ImageIO.read(getClass().getResourceAsStream(filename));
+		} catch (IOException e) {
+			System.out.println("Error: File " + filename + " not found!");
+		}
+        if (image != null)
+            return new ImageIcon(image);
         return null;
+    }
+    
+    /** Properly shuts down this object and all related streams. */
+    public void shutDown() {
+    	clip.close();
+    	dispose();
     }
 
     /**
@@ -265,5 +341,71 @@ public class SudokuDialog extends JFrame {
      */
     public static void main(String[] args) {
     	new NewPanel();
+    }
+    
+    class CheckListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			playClick();
+			if(board.solve(false))
+        		showMessage("Solvable");
+        	else
+        		showMessage("Not solvable");
+		}
+    }
+    
+    class InputGuideListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			playClick();
+			board.incGuideMode();
+        	boardPanel.repaint();
+			handlePadEnables();
+			switch (board.getGuideMode()) {
+				case 0:
+					input.setIcon(createImageIcon("/00s.png"));
+					inputB.setIcon(createImageIcon("/00m.png"));
+					break;
+				case 1:
+					input.setIcon(createImageIcon("/01s.png"));
+					inputB.setIcon(createImageIcon("/01m.png"));
+					break;
+				case 2:
+					input.setIcon(createImageIcon("/02s.png"));
+					inputB.setIcon(createImageIcon("/02m.png"));
+					break;
+				default: System.out.println("Could not set InputGuide icon. Invalid input guide state: " + board.getGuideMode());
+			}
+
+		}
+    }
+    
+    class SolveListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			playClick();
+			if(board.solve(true))
+				boardPanel.repaint();
+        	else
+        		showMessage("Not solvable");
+		}
+    }
+    
+    class UndoListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			playClick();
+			board.undo();
+			boardPanel.repaint();
+		}	
+    }
+    
+    class RedoListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			playClick();
+			board.redo();
+			boardPanel.repaint();
+		}	
     }
 }

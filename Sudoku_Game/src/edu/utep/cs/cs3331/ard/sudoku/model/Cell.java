@@ -4,15 +4,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Sudoku game board square consisting of a value and state.
+ * Sudoku game board cell consisting of a value and state.
  * 
  * @author      Anthony DesArmier
  * @version     1.2
  */
 public class Cell {
 	
-	/** Various states a square may be in.
-	 * A fixed square is one that cannot be modified. */
+	/** Various states a cell may be in.
+	 * A fixed cell is one that cannot be modified. */
 	public enum State {
 		NORMAL, SELECTED, ERROR, FIXED
 	}
@@ -86,6 +86,6 @@ public class Cell {
 	 * @return true if equal, false otherwise.
 	 */
 	public boolean equals(int value ) {
-		return this.getValue()==value;
+		return this.value==value;
 	}
 }

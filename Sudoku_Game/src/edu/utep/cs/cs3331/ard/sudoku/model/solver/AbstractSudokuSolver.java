@@ -26,6 +26,11 @@ public abstract class AbstractSudokuSolver {
 	/** Prints all possible solutions for a Sudoku board. */
 	protected abstract void runSolverAll(int[][] sudoku);
 
+	/**
+	 * Runs the solver only to find a single solution.
+	 * @param sudoku Sudoku board to find a solution for.
+	 * @return the solved Sudoku board.
+	 */
 	public int[][] generate(int[][] sudoku) {
 		S = sudoku.length;
 		side = (int) Math.sqrt(S);
@@ -39,8 +44,8 @@ public abstract class AbstractSudokuSolver {
 	 */
 	public int[][] solve(int[][] sudoku) {
 		if (!validateSudoku(sudoku)) {
-			System.out.println("Error: Invalid sudoku. Aborting....");
-			return null;
+			//System.out.println("Error: Invalid sudoku. Aborting....");
+			return new int[][] {{0}};
 		}
 		S = sudoku.length;
 		side = (int) Math.sqrt(S);
@@ -116,14 +121,14 @@ public abstract class AbstractSudokuSolver {
 	}
 
 	/**
-	 * Determines whether the Sudoku board is complete and valid.
+	 * Determines whether the Sudoku board is valid.
 	 * <p>
 	 * Uses bitmapping to determine the requirements for a completed Sudoku game board:
 	 * Only one of each number exists in every row, column, and sub-grid.
 	 * <p>
 	 * Runs in O(n) time.
 	 * @param grid 2D array of cell values.
-	 * @return true of the Sudoku game board is complete and valid, false otherwise.
+	 * @return true of the Sudoku game board is valid, false otherwise.
 	 */
 	protected static boolean validateSudoku(int[][] grid) {
 		if (grid.length != 4 && grid.length != 9 && grid.length != 16)

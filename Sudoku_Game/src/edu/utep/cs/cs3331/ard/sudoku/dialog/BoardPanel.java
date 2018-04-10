@@ -45,21 +45,25 @@ public class BoardPanel extends JPanel {
 	/** Selected square color. */
 	private static final Color SELECT_COLOR = Color.PINK;
 	/** Completed board color. */
-	private static final Color WIN_COLOR = Color.GREEN;
-	
+	private static final Color WIN_COLOR = new Color(144,238,144); // Light green
 	/** Font of the board text. */
 	private static final Font BOARD_NUMBER = new Font("Monospaced", Font.BOLD, 14);
 
     /** Board to be displayed. */
     private Board board;
-
     /** Width and height of a square in pixels. */
     private int squareSize;
+    private int[] pointingCell;
 
 	/** Create a new board panel to display the given board. */
     public BoardPanel(Board board, ClickListener listener) {
         this.board = board;
-        addMouseListener(new MouseAdapter() {
+        if(board.getSize()==4)
+        	setPreferredSize(new Dimension (268, 268));
+        else if(board.getSize()==9)
+        	setPreferredSize(new Dimension (270, 270));
+        pointingCell = new int[2];
+        MouseAdapter mouse = new MouseAdapter() {
             @Override
 			public void mouseClicked(MouseEvent e) {
             	int xy = locateSquare(e.getX(), e.getY());
@@ -67,7 +71,21 @@ public class BoardPanel extends JPanel {
             		listener.clicked(xy / 100, xy % 100);
             	}
             }
-        });
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                //System.out.println("Mouse moved"+e.getX() + "," + e.getY());
+            	int[] oldPointingCell = new int[] {pointingCell[0], pointingCell[1]};
+                int xy = locateSquare(e.getX(), e.getY());
+            	if (xy >= 0) {
+            		pointingCell[0] = xy / 100;
+            		pointingCell[1] = xy % 100;
+            	}
+            	if(oldPointingCell[0] != pointingCell[0] || oldPointingCell[1] != pointingCell[1])
+            		repaint();
+             }
+        };
+        addMouseListener(mouse);
+        addMouseMotionListener(mouse);
     }
     
     /**
@@ -110,8 +128,8 @@ public class BoardPanel extends JPanel {
 
         // determine the square size
         Dimension dim = getSize();
-        squareSize = Math.min(dim.width, dim.height) / board.getSize();
-
+        squareSize = Math.min(dim.width,dim.height) / board.getSize();
+        
         // draw background
         //final Color oldColor = g.getColor();
         if(board.isSolved())
@@ -145,20 +163,6 @@ public class BoardPanel extends JPanel {
         		
         }
         
-	    g.setColor(Color.BLACK); // fill in numbers  
-        g.setFont(BOARD_NUMBER);
-        FontMetrics metrics = g.getFontMetrics(BOARD_NUMBER);
-        int width = metrics.stringWidth("0")/2;
-        int height = metrics.getDescent();
-        int value;
-        for(int i=0; i<board.getSize(); i++) {
-        	for(int j=0; j<board.getSize(); j++) {
-        		value = board.getValue(i, j);
-        		if(value!=0)
-        			g.drawString(String.valueOf(value), (i+1)*(squareSize)-squareSize/2-width, (j+1)*(squareSize)-squareSize/2+height);
-        	}
-        }
-        
         g.setColor(Color.LIGHT_GRAY); // draw the grid
         int size = board.getSize();
         int subGrid = board.getCellDim();
@@ -172,6 +176,30 @@ public class BoardPanel extends JPanel {
     		g.drawLine(0, squareSize*(i+1), squareSize*size, squareSize*(i+1)); // rows
         }
         
+        if(board.getState(pointingCell[0], pointingCell[1], State.FIXED)) // pointed cell
+        	g.setColor(FIXED_COLOR);
+        else
+        	g.setColor(new Color(144,238,144)); // Light green
+        g.fillRect(pointingCell[0]*squareSize-5, pointingCell[1]*squareSize-5, squareSize+10, squareSize+10);
+        
+	    g.setColor(Color.BLACK); // fill in numbers  
+        g.setFont(BOARD_NUMBER);
+        FontMetrics metrics = g.getFontMetrics(BOARD_NUMBER);
+        int width = metrics.stringWidth("0")/2;
+        int height = metrics.getDescent();
+        int value;
+        for(int i=0; i<board.getSize(); i++) {
+        	for(int j=0; j<board.getSize(); j++) {
+        		value = board.getValue(i, j);
+        		if(value!=0)
+        			g.drawString(String.valueOf(value), (i+1)*(squareSize)-squareSize/2-width, (j+1)*(squareSize)-squareSize/2+height);
+        	}
+        }
     }
 
+    /** Repaints only the last selected cell. */
+	public void repaintCell(int x, int y) {
+		int[] lastIndex = board.getLastSelected();
+		repaint(lastIndex[0]*squareSize, lastIndex[1]*squareSize, squareSize, squareSize);
+	}
 }

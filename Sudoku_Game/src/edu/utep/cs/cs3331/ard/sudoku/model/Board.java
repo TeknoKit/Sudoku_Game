@@ -2,14 +2,15 @@ package edu.utep.cs.cs3331.ard.sudoku.model;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import edu.utep.cs.cs3331.ard.sudoku.model.Cell.State;
-import edu.utep.cs.cs3331.ard.sudoku.net.JsonBoard;
-import edu.utep.cs.cs3331.ard.sudoku.net.JsonSquare;
 import edu.utep.cs.cs3331.ard.sudoku.model.solver.AbstractSudokuSolver;
 import edu.utep.cs.cs3331.ard.sudoku.model.solver.SudokuDLX;
+import edu.utep.cs.cs3331.ard.sudoku.net.JsonBoard;
+import edu.utep.cs.cs3331.ard.sudoku.net.JsonSquare;
 
 /**
  * Sudoku game board and various game logic.
@@ -27,11 +28,22 @@ public class Board {
 	private List<Cell> grid;
 	/** x, y coordinate of the last selected square. */
 	private int[] lastSelected;
+	/** Whether the selected square is the same square selected last time. */
+	private boolean sameSelected;
 	/** Indices of the last set of error squares. */
 	private Set<Integer> lastError;
 	/** Sudoku game board solver. */
 	private AbstractSudokuSolver solver = new SudokuDLX();
-	
+	/** 
+	 * Input guide mode. 
+	 * 0 - no guide, 1 - disable incorrect inputs, 2 - show conflicting inputs
+	 */
+	private int guideMode;
+	/** List of actions that simulate undo commands. */
+	private LinkedList<int[]> undo = new LinkedList<>();
+	/** List of actions that simulate redo commands. */
+	private LinkedList<int[]> redo = new LinkedList<>();
+
 	/**
 	 * Generates a Sudoku game board from a given template.
 	 * @param boardJSON	JsonObject containing information used to create a Sudoku game board.
@@ -69,31 +81,6 @@ public class Board {
 	 */
 	public Board() {
 		this(9);
-	}
-
-	/**
-	 * Constructs a grid representation of a Sudoku game board.
-	 * @param size size of the board.
-	 * @param difficulty 0 - empty, 1 - easy, 2 - normal, 3 - difficult.
-	 */
-	private final void generateGrid(int size, int difficulty) {
-		this.cellDim = (int)Math.sqrt(size); // Should be a perfect square
-		grid = new ArrayList<>(size*size);
-		for(int i=0; i<size*size; i++)
-			grid.add(new Cell());
-		if(difficulty!=0) {
-			int[][] preMade = SudokuGenerator.generate(size, difficulty);
-			int x = 0;
-			for(int i=0; i<preMade.length; i++)
-				for(int j=0; j<preMade[0].length; j++)
-					if(preMade[i][j]!=0) {
-						x = j+(i*size);
-						grid.get(x).setValue(preMade[i][j]);
-						grid.get(x).setState(State.FIXED);
-					}
-		}
-		lastSelected = new int[] {-1,-1};
-        lastError = new HashSet<>();
 	}
 
 	/**
@@ -137,15 +124,28 @@ public class Board {
 	}
 	
 	/**
+	 * Getter for {@link #sameSelected}.
+	 * @return {@link #sameSelected}
+	 */
+	public boolean isSameSelected() {
+		return sameSelected;
+	}
+	
+	/**
 	 * Setter for {@link #lastSelected}.
 	 * @param x x-position of the cell space.
 	 * @param y y-position of the cell space.
 	 */
 	public void select(int x, int y) {
-		lastSelected[0] = x;
-		lastSelected[1] = y;
+		if(lastSelected[0]==x && lastSelected[1]==y)
+			sameSelected = true;
+		else {
+			lastSelected[0] = x;
+			lastSelected[1] = y;
+			sameSelected = false;
+		}
 	}
-	
+
 	/**
 	 * Returns the value in a given cell of a Sudoku game board.
 	 * @param x x-position of the cell space.
@@ -155,36 +155,127 @@ public class Board {
 	public int getValue(int x, int y) {
 		return grid.get(x*size+y).getValue();
 	}
+	
+	/**
+	 * Determines of the last selected cell is in a fixed state.
+	 * @return true if the last selected cell is fixed, false otherwise.
+	 */
+	public boolean getLastSelectedFixed() {
+		if(cellSelected())
+			return getState(lastSelected[0], lastSelected[1], State.FIXED);
+		else
+			return false;
+	}
+	
+	/**
+	 * Returns true/false if a given cell has a certain state.
+	 * @param x x-position of the cell space.
+	 * @param y y-position of the cell space.
+	 * @return true if the cell has the requested state, false otherwise.
+	 */
+	public boolean getState(int x, int y, State state) {
+		return grid.get(x*size+y).getState().contains(state);
+	}
+	
+	/**
+	 * Getter for {@link #guideMode}.
+	 * @return {@link #guideMode}
+	 */
+	public int getGuideMode() {
+		return guideMode;
+	}
+
+	/**
+	 * Setter for {@link #guideMode}.
+	 * @param {@link #guideMode}
+	 */
+	public void setGuideMode(int guideMode) {
+		this.guideMode = guideMode;
+		if(this.guideMode!=2)
+			clearErrors();
+	}
+	
+	/**
+	 * Increases the {@link #guideMode} by 1, or to 0 if it was 2.
+	 * @param {@link #guideMode}
+	 */
+	public void incGuideMode() {
+		guideMode=(guideMode+1)%3;
+		if(this.guideMode!=2)
+			clearErrors();
+		//System.out.println("GuideMode: "+guideMode);
+	}
+	
+	/**
+	 * Determines if any cell is selected.
+	 * @return true if a cell is selected, false otherwise.
+	 */
+	public boolean cellSelected() {
+		return !(lastSelected[0]==-1 && lastSelected[1]==-1);
+	}
+	
+	/**
+	 * Constructs a grid representation of a Sudoku game board.
+	 * @param size size of the board.
+	 * @param difficulty 0 - empty, 1 - easy, 2 - normal, 3 - difficult.
+	 */
+	private final void generateGrid(int size, int difficulty) {
+		this.cellDim = (int)Math.sqrt(size); // Should be a perfect square
+		grid = new ArrayList<>(size*size);
+		for(int i=0; i<size*size; i++)
+			grid.add(new Cell());
+		if(difficulty!=0) {
+			int[][] preMade = SudokuGenerator.generate(size, difficulty);
+			int x = 0;
+			for(int i=0; i<preMade.length; i++)
+				for(int j=0; j<preMade[0].length; j++)
+					if(preMade[i][j]!=0) {
+						x = j+(i*size);
+						grid.get(x).setValue(preMade[i][j]);
+						grid.get(x).setState(State.FIXED);
+					}
+		}
+		lastSelected = new int[] {-1,-1};
+        lastError = new HashSet<>();
+        guideMode = 0;
+	}
 
 	/**
 	 * Inserts a value into the last selected cell space on the Sudoku game board if valid.
 	 * @param num number to insert.
+	 * @param fresh whether this is a new action or an undo/redo action.
 	 */
-	public void update(int num) {
+	public void update(int num, boolean fresh) {
 		if((solved && num!=0) || lastSelected[0]<0 || lastSelected[1]<0)
 			return;
 		int index = lastSelected[0]*size+lastSelected[1];
 		Cell cell = grid.get(index);
 		if(cell.getState().contains(State.FIXED))
 			return;
-		if(!isValidEntry(new int[] {lastSelected[0], lastSelected[1], num}))
+		if(guideMode!=0 && !isValidEntry(new int[] {lastSelected[0], lastSelected[1], num}, true))
 			return;
+		int oldNum = cell.getValue();
 		cell.setValue(num);
 		cell.setState(State.SELECTED);
 		if(num!=0 && AbstractSudokuSolver.validateSudoku(grid, size, cellDim)) // no need to check board if a 0 was just inserted
 			solved = true;
 		else
 			solved = false;
+		if(fresh) {
+			undo.push(new int[] {lastSelected[0], lastSelected[1], oldNum});
+			redo.clear();
+		}
 	}
 	
 	/**
 	 * Inserts a value into a given cell space on the Sudoku game board if valid.
 	 * @param values x,y and z values corresponding to the Sudoku game board position and value.
+	 * @param fresh whether this is a new action or an undo/redo action.
 	 */
-	public void update(int[] values) {
+	public void update(int[] values, boolean fresh) {
 		lastSelected[0] = values[0];
 		lastSelected[1] = values[1];
-		update(values[2]);
+		update(values[2], fresh);
 	}
 
 	/**
@@ -202,64 +293,122 @@ public class Board {
 	}
 	
 	/**
+	 * Searches for all invalid inputs for the last selected cell.
+	 * @return list of invalid input values.
+	 */
+	public ArrayList<Integer> invalidInputs() {
+		return invalidInputs(lastSelected);
+	}
+	
+	/**
+	 * Searches for all invalid inputs for a given cell.
+	 * @return list of invalid input values.
+	 */
+	public ArrayList<Integer> invalidInputs(int[] cell) {
+		ArrayList<Integer> invalids = new ArrayList<>();
+		for(int i=1; i<=size; i++)
+			if(!isValidEntry(new int[] {cell[0], cell[1], i}, false))
+				invalids.add(i);
+		return invalids;
+	}
+	
+	/**
 	 * Checks if a given input is a valid move for a Sudoku game. Populates {@link #errorSquares} as any are found.
 	 * <p>
 	 * A valid move is considered to be inserting a number that does not already exist
 	 * within the same row, column, or sub-grid.
 	 * @param values x,y and z values corresponding to the Sudoku game board position and value.
+	 * @param report true if it should record where the conflict was located, false otherwise.
 	 * @return true if valid, false otherwise.
 	 */
-	private boolean isValidEntry(int[] values) {
-		lastError.forEach(i -> grid.get(i).removeState(State.ERROR)); // clear out old errors
-		lastError.clear();
+	private boolean isValidEntry(int[] values, boolean report) {
+		clearErrors();
 		if(values[2]!=0 ) { // no validity check if value is 0
 			int[] subGrid = {(values[0]/cellDim)*cellDim, (values[1]/cellDim)*cellDim}; // floor indices to nearest multiple of cell dimension
 			int j=-1, x=0, y=0, index=0;
 			boolean error = false;
-			Cell cell;
 			for(int i=0; i<size; i++) {
-				index = values[0]*size+i;
-				cell = grid.get(index); // column
-				if(cell.equals(values[2]) ) {
-					cell.setState(State.ERROR);
-					lastError.add(index);
-					error = true;
-				}
-				index = i*size+values[1];
-				cell = grid.get(index); // row
-				if(cell.equals(values [2])) { 
-					cell.setState(State.ERROR);
-					lastError.add(index);
-					error = true;
-				}
-				if(i%cellDim==0) j++; 
+				index = values[0]*size+i; // column
+				error = checkError(values, report, index, error);
+				index = i*size+values[1]; // row
+				error = checkError(values, report, index, error);
+				if(i%cellDim==0) j++;
 				x = i%cellDim+subGrid[0];
 				y = j%cellDim+subGrid[1];
-				index = x*size+y;
-				cell = grid.get(index); // sub-grid
-				if(cell.equals(values[2])) {
-					cell.setState(State.ERROR);
-					lastError.add(index);
-					error = true;
-				}
+				index = x*size+y; // sub-grid
+				error = checkError(values, report, index, error);
 			}
 			if(error) return false;
 		}
 		return true;
 	}
-	
-	/** Solves this board's grid. */
-	public void solve() {
-		if(solved) return;
-		int[][] solution = solver.solve(grid);
-		if(solution.length<size) {
-			System.out.println("Found more than 1 solution when trying to solve the board.");
-			return;
-		}
-		for(int i=0; i<solution.length; i++)
-			for(int j=0; j<solution[0].length; j++)
-				grid.get(j+(i*size)).setValue(solution[i][j]);
-		solved = true;
-	}
 
+	/**
+	 * Checks whether a specified cell conflicts with the input values.
+	 * @param values x,y and z values corresponding to the Sudoku game board position and value.
+	 * @param report true if it should record where the conflict was located, false otherwise.
+	 * @param index cell index of the cell to check conflict with.
+	 * @param error the current overall error state.
+	 * @return true if cell conflicts with input values, previous overall state otherwise.
+	 */
+	private boolean checkError(int[] values, boolean report, int index, boolean error) {
+		Cell cell = grid.get(index);
+		if(cell.equals(values[2])) {
+			if(report) {
+				cell.setState(State.ERROR);
+				lastError.add(index);
+			}
+			error = true;
+		}
+		return error;
+	}
+	
+	/**
+	 * Solves this board's grid.
+	 * @param apply whether to apply the solution to the board or not.
+	 * @return true if the board is solvable, false otherwise.
+	 */
+	public boolean solve(boolean apply) {
+		if(solved) return true;
+		int[][] solution = solver.solve(grid);
+		if(solution[0][0]==0)
+			return false;
+		else if(solution.length<size) {
+			//System.out.println("Found more than 1 solution when trying to solve the board.");
+			throw new UnsupportedOperationException();
+		}
+		if(apply) {
+			for(int i=0; i<solution.length; i++)
+				for(int j=0; j<solution[0].length; j++)
+					grid.get(j+(i*size)).setValue(solution[i][j]);
+			solved = true;
+		}
+		return true;
+	}
+	
+	/** Clears out all error squares. */
+	private void clearErrors() {
+		lastError.forEach(i -> grid.get(i).removeState(State.ERROR));
+		lastError.clear();
+	}
+	
+	/** Steps back an update step. */
+	public void undo() {
+		if(undo.isEmpty())
+			return;
+		int[] action = undo.pop();
+		int num = getValue(action[0], action[1]);
+		update(action, false);
+		redo.push(new int[] {action[0], action[1], num});
+	}
+	
+	/** Steps forward an update step. Only valid after an undo. */
+	public void redo() {
+		if(redo.isEmpty())
+			return;
+		int[] action = redo.pop();
+		int num = getValue(action[0], action[1]);
+		update(action, false);
+		undo.push(new int[] {action[0], action[1], num});
+	}
 }

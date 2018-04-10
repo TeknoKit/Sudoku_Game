@@ -4,5 +4,6 @@
 	<classpathentry excluding="edu/utep/cs/cs3331/ard/sudoku/test/" kind="src" path="src"/>
 	<classpathentry kind="src" path="res"/>
 	<classpathentry kind="lib" path="libs/minimal-json-0.9.5.jar"/>
+	<classpathentry kind="lib" path="libs/jlfgr-1_0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

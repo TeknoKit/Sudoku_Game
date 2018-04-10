@@ -1,9 +1,7 @@
 package edu.utep.cs.cs3331.ard.sudoku.dialog;
 
 import java.awt.Component;
-import java.awt.event.ActionEvent;
 
-import javax.swing.AbstractAction;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -23,16 +21,19 @@ public class NewPanel extends JFrame {
 	private JRadioButton s1, s2, d1, d2, d3;
 	private JButton b1, b2;
 	
+	/** Contructs a NewPanel without a parent frame. */
 	public NewPanel() {
 		this(null);
 	}
 
-	public NewPanel(JFrame parent) {
+	/** Constructs a NewPanel with a parent {@link SudokuDialog}. */
+	public NewPanel(SudokuDialog parent) {
 		super("New Game");
 		configureUI(parent);
 	}
 
-	private void configureUI(JFrame parent) {
+	/** Configures and displays the NewPanel. */
+	private void configureUI(SudokuDialog parent) {
 		JPanel size = new JPanel();
 		sizeLabel = new JLabel("Difficulty Level:", JLabel.LEFT);
 		s1 = new JRadioButton("4x4");
@@ -49,8 +50,8 @@ public class NewPanel extends JFrame {
 		diffGroup.add(d1); diffGroup.add(d2); diffGroup.add(d3);
 		
 		JPanel buttons = new JPanel();
-		b1 = new JButton(new AbstractAction("Play") {
-			public void actionPerformed(ActionEvent e) {
+		b1 = new JButton("Play"); 
+		b1.addActionListener(e -> {
 				int sizeVal = -1;
 				int diffVal = -1;
 				if(s1.isSelected()) sizeVal = 4;
@@ -60,10 +61,11 @@ public class NewPanel extends JFrame {
 				else if(d3.isSelected()) diffVal = 3;
 				if(sizeVal!=-1 && diffVal!=-1) {
 					dispose();
-					if(parent!=null) parent.dispose();
+					if(parent!=null) {
+						parent.shutDown();
+					}
 					new SudokuDialog(sizeVal, diffVal);
 				}
-			}
 		});
 		b2 = new JButton("Cancel");
 		b2.addActionListener(e -> dispose());
@@ -90,9 +92,4 @@ public class NewPanel extends JFrame {
         setResizable(false);
 		setVisible(true);
 	}
-	
-	public static void main(String[] args) {
-		new NewPanel();
-	}
-
 }
