@@ -121,7 +121,7 @@ public class SudokuDLX extends AbstractSudokuSolver {
         DancingLinks dlx = new DancingLinks(cover, s);
         int i = dlx.runSolverMode(mode);
         if(i==1)
-        	return s.result;
+        	return s.getResult();
         else {
         	return new int[][] {{i}}; // Return a special error code array signifying how many solutions were found.
         } 	

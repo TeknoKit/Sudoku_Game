@@ -59,13 +59,13 @@ class SudokuHandler implements SolutionHandler {
 }
 
 /**
- * Deciphers a list of dancing nodes representing a solution into a Sudoku board
+ * Deciphers a list of dancing nodes representing a solution into a Sudoku board.
  * and saves a copy of it.
  * @author Anthony DesArmier
  */
 class SudokuReturnHandler extends SudokuHandler {
 	/** 2D Sudoku board solution. */
-	int[][] result;
+	private int[][] result;
 	
 	@Override
 	public void handleSolution(List<DancingNode> answer) {

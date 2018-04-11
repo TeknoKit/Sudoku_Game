@@ -83,6 +83,12 @@ public class BoardPanel extends JPanel {
             	if(oldPointingCell[0] != pointingCell[0] || oldPointingCell[1] != pointingCell[1])
             		repaint();
              }
+            @Override
+            public void mouseExited(MouseEvent e) {
+            	pointingCell[0] = -1;
+            	pointingCell[1] = -1;
+            	repaint();
+            }
         };
         addMouseListener(mouse);
         addMouseMotionListener(mouse);
@@ -176,11 +182,13 @@ public class BoardPanel extends JPanel {
     		g.drawLine(0, squareSize*(i+1), squareSize*size, squareSize*(i+1)); // rows
         }
         
-        if(board.getState(pointingCell[0], pointingCell[1], State.FIXED)) // pointed cell
-        	g.setColor(FIXED_COLOR);
-        else
-        	g.setColor(new Color(144,238,144)); // Light green
-        g.fillRect(pointingCell[0]*squareSize-5, pointingCell[1]*squareSize-5, squareSize+10, squareSize+10);
+        if(!(pointingCell[0] < 0 || pointingCell[1] < 0)) {
+	        if(board.getState(pointingCell[0], pointingCell[1], State.FIXED)) // pointed cell
+	        	g.setColor(FIXED_COLOR);
+	        else
+	        	g.setColor(new Color(144,238,144)); // Light green
+	        g.fillRect(pointingCell[0]*squareSize-5, pointingCell[1]*squareSize-5, squareSize+10, squareSize+10);
+        }
         
 	    g.setColor(Color.BLACK); // fill in numbers  
         g.setFont(BOARD_NUMBER);

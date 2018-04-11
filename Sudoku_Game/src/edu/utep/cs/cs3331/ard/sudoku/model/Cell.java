@@ -28,6 +28,11 @@ public class Cell {
 		this(0, State.NORMAL);
 	}
 	
+	/** Creates a normal cell with a given value. */
+	public Cell(int value) {
+		this(value, State.NORMAL);
+	}
+	
 	/** Creates a cell with a given value and state. */
 	public Cell(int value, State state) {
 		this.value = value;

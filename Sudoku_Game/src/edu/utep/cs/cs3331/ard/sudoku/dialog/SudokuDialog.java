@@ -73,7 +73,8 @@ public class SudokuDialog extends JFrame {
     	this(DEFAULT_DIM, DEFAULT_SIZE, DEFAULT_DIFFICULTY);
     }
     
-    /** Create a new dialog with the default screen dimensions.
+    /**
+     * Create a new dialog with the default screen dimensions.
      * @param size Sudoku game board size.
      * @param difficulty Sudoku game difficulty.
      */
@@ -81,7 +82,8 @@ public class SudokuDialog extends JFrame {
     	this(DEFAULT_DIM, size, difficulty);
     }
     
-    /** Create a new dialog.
+    /**
+     * Create a new dialog.
      * @param dim dialog dimension.
      * @param size Sudoku game board size.
      * @param difficulty Sudoku game difficulty.
@@ -142,33 +144,34 @@ public class SudokuDialog extends JFrame {
         JMenu game = new JMenu("Game");
         game.setMnemonic(KeyEvent.VK_G);
         JMenuItem newGame = new JMenuItem("New Game", KeyEvent.VK_N);
+        newGame.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
         newGame.setIcon(createImageIcon("/toolbarButtonGraphics/media/Play16.gif"));
         newGame.addActionListener(e -> {playClick(); new NewPanel(this);});
-        newGame.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
         game.add(newGame);
         game.addSeparator();
         JMenuItem exit = new JMenuItem("Quit", KeyEvent.VK_Q);
+        exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
         exit.setIcon(createImageIcon("/toolbarButtonGraphics/general/Stop16.gif"));
         exit.addActionListener(e -> shutDown());
-        exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
         game.add(exit);
         menuBar.add(game);
+        
         JMenu help = new JMenu("Help");
         help.setMnemonic(KeyEvent.VK_H);
         JMenuItem check = new JMenuItem("Check Progress", KeyEvent.VK_C);
+        check.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK));
         check.setIcon(createImageIcon("/toolbarButtonGraphics/general/Information16.gif"));
         check.addActionListener(new CheckListener());
-        check.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK));
         help.add(check);
         input = new JMenuItem("Input Guide", KeyEvent.VK_I);
+        input.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
         input.setIcon(createImageIcon("/00s.png"));
         input.addActionListener(new InputGuideListener());
-        input.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
         help.add(input);
-        JMenuItem solve = new JMenuItem("Solve", KeyEvent.VK_S);
+        JMenuItem solve = new JMenuItem("Solve", KeyEvent.VK_V);
+        solve.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, ActionEvent.CTRL_MASK));
         solve.setIcon(createImageIcon("/toolbarButtonGraphics/media/FastForward16.gif"));
         solve.addActionListener(new SolveListener());
-        solve.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK));
         help.add(solve);
         menuBar.add(help);
         setJMenuBar(menuBar);
