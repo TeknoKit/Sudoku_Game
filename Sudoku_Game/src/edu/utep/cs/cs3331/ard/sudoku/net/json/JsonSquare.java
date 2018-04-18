@@ -1,4 +1,4 @@
-package edu.utep.cs.cs3331.ard.sudoku.net;
+package edu.utep.cs.cs3331.ard.sudoku.net.json;
 
 /**
  * Sudoku game board square from a Sudoku Web Service API.

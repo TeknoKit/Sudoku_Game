@@ -11,32 +11,36 @@ import java.util.Set;
  */
 public class Cell {
 	
-	/** Various states a cell may be in.
-	 * A fixed cell is one that cannot be modified. */
+	/** Various states a cell may be in.*/
 	public enum State {
-		NORMAL, SELECTED, ERROR, FIXED
+		/** Selected cell*/
+		SELECTED,
+		/** Conflicts with an input value*/
+		ERROR,
+		/** Cannot be modified.*/
+		FIXED
 	}
 
 	/** Value of the cell. */
-	private int value;
+	int value;
 
 	/** States of the cell. */
-	private Set<State> states;
+	Set<State> states;
 	
 	/** Creates a default empty cell. */
 	public Cell() {
-		this(0, State.NORMAL);
+		this(0);
 	}
 	
 	/** Creates a normal cell with a given value. */
 	public Cell(int value) {
-		this(value, State.NORMAL);
+		this.value = value;
+		states = new HashSet<>();
 	}
 	
 	/** Creates a cell with a given value and state. */
 	public Cell(int value, State state) {
-		this.value = value;
-		states = new HashSet<>();
+		this(value);
 		states.add(state);
 	}
 	

@@ -7,7 +7,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -102,31 +101,6 @@ public class SudokuDialog extends JFrame {
         setVisible(true);
     }
 
-	/**
-     * Callback to be invoked when a square of the board is clicked.
-     * @param x 0-based row index of the clicked square.
-     * @param y 0-based column index of the clicked square.
-     */
-    private void boardClicked(int x, int y) {
-		playClick();
-		board.select(x, y);
-		boardPanel.repaint();
-		showMessage("");
-		if(!board.isSameSelected())
-			handlePadEnables();
-    }
-    
-    /**
-     * Callback to be invoked when a number button is clicked.
-     * @param number clicked number (1-9), or 0 for "X".
-     */
-    private void numberClicked(int number) {
-    	playClick();
-    	board.update(number, true);
-    	boardPanel.repaint();
-    	showMessage("");
-    }
-
     /**
      * Display the given string in the message bar.
      * @param msg message to be displayed.
@@ -149,6 +123,17 @@ public class SudokuDialog extends JFrame {
         newGame.addActionListener(e -> {playClick(); new NewPanel(this);});
         game.add(newGame);
         game.addSeparator();
+        JMenuItem undo = new JMenuItem("Undo", KeyEvent.VK_Z);
+        undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, ActionEvent.CTRL_MASK));
+        undo.setIcon(createImageIcon("/toolbarButtonGraphics/media/StepBack16.gif"));
+        undo.addActionListener(this::undoClicked);
+        game.add(undo);
+        JMenuItem redo = new JMenuItem("Redo", KeyEvent.VK_Y);
+        redo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, ActionEvent.CTRL_MASK));
+        redo.setIcon(createImageIcon("/toolbarButtonGraphics/media/StepForward16.gif"));
+        redo.addActionListener(this::redoClicked);
+        game.add(redo);
+        game.addSeparator();
         JMenuItem exit = new JMenuItem("Quit", KeyEvent.VK_Q);
         exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
         exit.setIcon(createImageIcon("/toolbarButtonGraphics/general/Stop16.gif"));
@@ -156,58 +141,72 @@ public class SudokuDialog extends JFrame {
         game.add(exit);
         menuBar.add(game);
         
+        JMenu network = new JMenu("Network");
+        network.setMnemonic(KeyEvent.VK_N);
+        JMenuItem multiplayer = new JMenuItem("Multiplayer", KeyEvent.VK_M);
+        multiplayer.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, ActionEvent.CTRL_MASK));
+        multiplayer.setIcon(createImageIcon("/wireless16.png"));
+        multiplayer.addActionListener(this::wirelessClicked);
+        network.add(multiplayer);
+        menuBar.add(network);
+        
         JMenu help = new JMenu("Help");
         help.setMnemonic(KeyEvent.VK_H);
         JMenuItem check = new JMenuItem("Check Progress", KeyEvent.VK_C);
         check.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK));
         check.setIcon(createImageIcon("/toolbarButtonGraphics/general/Information16.gif"));
-        check.addActionListener(new CheckListener());
+        check.addActionListener(this::checkClicked);
         help.add(check);
         input = new JMenuItem("Input Guide", KeyEvent.VK_I);
         input.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
         input.setIcon(createImageIcon("/00s.png"));
-        input.addActionListener(new InputGuideListener());
+        input.addActionListener(this::inputGuideClicked);
         help.add(input);
         JMenuItem solve = new JMenuItem("Solve", KeyEvent.VK_V);
         solve.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, ActionEvent.CTRL_MASK));
         solve.setIcon(createImageIcon("/toolbarButtonGraphics/media/FastForward16.gif"));
-        solve.addActionListener(new SolveListener());
+        solve.addActionListener(this::solveClicked);
         help.add(solve);
         menuBar.add(help);
         setJMenuBar(menuBar);
         
         
         JToolBar toolBar = new JToolBar();
-        JButton newGameB = new JButton(createImageIcon("/toolbarButtonGraphics/media/Play24.gif"));
+        JButton newGameB = new JButton(createImageIcon("/toolbarButtonGraphics/media/Play16.gif"));
         newGameB.setToolTipText("Start a new game");
     	newGameB.addActionListener(e -> {playClick(); new NewPanel(this);});
     	newGameB.setFocusPainted(false);
     	toolBar.add(newGameB);
-    	JButton checkB = new JButton(createImageIcon("/toolbarButtonGraphics/general/Information24.gif"));
+    	JButton checkB = new JButton(createImageIcon("/toolbarButtonGraphics/general/Information16.gif"));
     	checkB.setToolTipText("Check if the board is solvable");
-    	checkB.addActionListener(new CheckListener());
+    	checkB.addActionListener(this::checkClicked);
     	checkB.setFocusPainted(false);
     	toolBar.add(checkB);
-    	inputB = new JButton(createImageIcon("/00m.png"));
+    	inputB = new JButton(createImageIcon("/00s.png"));
     	inputB.setToolTipText("Toggle input guide help modes");
-    	inputB.addActionListener(new InputGuideListener());
+    	inputB.addActionListener(this::inputGuideClicked);
     	inputB.setFocusPainted(false);
     	toolBar.add(inputB);
-    	JButton solveB = new JButton(createImageIcon("/toolbarButtonGraphics/media/FastForward24.gif"));
+    	JButton solveB = new JButton(createImageIcon("/toolbarButtonGraphics/media/FastForward16.gif"));
     	solveB.setToolTipText("Solve the board (if possible)");
-    	solveB.addActionListener(new SolveListener());
+    	solveB.addActionListener(this::solveClicked);
     	solveB.setFocusPainted(false);
     	toolBar.add(solveB);
-    	JButton undoB = new JButton(createImageIcon("/toolbarButtonGraphics/media/StepBack24.gif"));
+    	JButton undoB = new JButton(createImageIcon("/toolbarButtonGraphics/media/StepBack16.gif"));
     	undoB.setToolTipText("Undo an action");
-    	undoB.addActionListener(new UndoListener());
+    	undoB.addActionListener(this::undoClicked);
     	undoB.setFocusPainted(false);
     	toolBar.add(undoB);
-    	JButton redoB = new JButton(createImageIcon("/toolbarButtonGraphics/media/StepForward24.gif"));
+    	JButton redoB = new JButton(createImageIcon("/toolbarButtonGraphics/media/StepForward16.gif"));
     	redoB.setToolTipText("Redo an action");
-    	redoB.addActionListener(new RedoListener());
+    	redoB.addActionListener(this::redoClicked);
     	redoB.setFocusPainted(false);
     	toolBar.add(redoB);
+    	JButton networkB = new JButton(createImageIcon("/wireless16.png"));
+    	networkB.setToolTipText("Play with another player");
+    	networkB.addActionListener(this::wirelessClicked);
+    	networkB.setFocusPainted(false);
+    	toolBar.add(networkB);
     	add(toolBar, BorderLayout.NORTH);
     	
     	JPanel mainPanel = new JPanel(); 
@@ -346,69 +345,89 @@ public class SudokuDialog extends JFrame {
     	new NewPanel();
     }
     
-    class CheckListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			playClick();
-			if(board.solve(false))
-        		showMessage("Solvable");
-        	else
-        		showMessage("Not solvable");
-		}
-    }
-    
-    class InputGuideListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			playClick();
-			board.incGuideMode();
-        	boardPanel.repaint();
+	/**
+     * Callback to be invoked when a square of the board is clicked.
+     * @param x 0-based row index of the clicked square.
+     * @param y 0-based column index of the clicked square.
+     */
+    private void boardClicked(int x, int y) {
+		playClick();
+		board.select(x, y);
+		boardPanel.repaint();
+		showMessage("");
+		if(!board.isSameSelected())
 			handlePadEnables();
-			switch (board.getGuideMode()) {
-				case 0:
-					input.setIcon(createImageIcon("/00s.png"));
-					inputB.setIcon(createImageIcon("/00m.png"));
-					break;
-				case 1:
-					input.setIcon(createImageIcon("/01s.png"));
-					inputB.setIcon(createImageIcon("/01m.png"));
-					break;
-				case 2:
-					input.setIcon(createImageIcon("/02s.png"));
-					inputB.setIcon(createImageIcon("/02m.png"));
-					break;
-				default: System.out.println("Could not set InputGuide icon. Invalid input guide state: " + board.getGuideMode());
-			}
-
+    }
+    
+    /**
+     * Callback to be invoked when a number button is clicked.
+     * @param number clicked number (1-9), or 0 for "X".
+     */
+    private void numberClicked(int number) {
+    	playClick();
+    	board.update(number, true);
+    	boardPanel.repaint();
+    	showMessage("");
+    }
+    
+    /** ClickListener for check buttons.*/
+    private void checkClicked(ActionEvent e) {
+		playClick();
+		if(board.solve(false))
+    		showMessage("Solvable");
+    	else
+    		showMessage("Not solvable");
+	}
+    
+    /** ClickListener for input guide buttons.*/
+    private void inputGuideClicked(ActionEvent e) {
+		playClick();
+		board.incGuideMode();
+    	boardPanel.repaint();
+		handlePadEnables();
+		switch (board.getGuideMode()) {
+			case 0:
+				input.setIcon(createImageIcon("/00s.png"));
+				inputB.setIcon(createImageIcon("/00s.png"));
+				break;
+			case 1:
+				input.setIcon(createImageIcon("/01s.png"));
+				inputB.setIcon(createImageIcon("/01s.png"));
+				break;
+			case 2:
+				input.setIcon(createImageIcon("/02s.png"));
+				inputB.setIcon(createImageIcon("/02s.png"));
+				break;
+			default: System.out.println("Could not set InputGuide icon. Invalid input guide state: " + board.getGuideMode());
 		}
-    }
-    
-    class SolveListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			playClick();
-			if(board.solve(true))
-				boardPanel.repaint();
-        	else
-        		showMessage("Not solvable");
-		}
-    }
-    
-    class UndoListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			playClick();
-			board.undo();
+	}
+	
+    /** ClickListener for solve buttons.*/
+    private void solveClicked(ActionEvent e) {
+		playClick();
+		if(board.solve(true))
 			boardPanel.repaint();
-		}	
-    }
+    	else
+    		showMessage("Not solvable");
+	}
+	
+    /** ClickListener for undo buttons.*/
+    private void undoClicked(ActionEvent e) {
+		playClick();
+		board.undo();
+		boardPanel.repaint();
+	}
+	
+    /** ClickListener for redo buttons.*/
+    private void redoClicked(ActionEvent e) {
+		playClick();
+		board.redo();
+		boardPanel.repaint();
+	}
     
-    class RedoListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			playClick();
-			board.redo();
-			boardPanel.repaint();
-		}	
-    }
+    /** ClickListener for redo buttons.*/
+    private void wirelessClicked(ActionEvent e) {
+		playClick();
+		new NetworkWindow();
+	}
 }

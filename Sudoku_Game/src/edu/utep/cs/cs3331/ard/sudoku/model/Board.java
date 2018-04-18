@@ -9,8 +9,8 @@ import java.util.Set;
 import edu.utep.cs.cs3331.ard.sudoku.model.Cell.State;
 import edu.utep.cs.cs3331.ard.sudoku.model.solver.AbstractSudokuSolver;
 import edu.utep.cs.cs3331.ard.sudoku.model.solver.SudokuDLX;
-import edu.utep.cs.cs3331.ard.sudoku.net.JsonBoard;
-import edu.utep.cs.cs3331.ard.sudoku.net.JsonSquare;
+import edu.utep.cs.cs3331.ard.sudoku.net.json.JsonBoard;
+import edu.utep.cs.cs3331.ard.sudoku.net.json.JsonSquare;
 
 /**
  * Sudoku game board and various game logic.
@@ -53,7 +53,7 @@ public class Board {
 		generateGrid(size, 0);
         for (JsonSquare square : jsonBoard.getSquares()) {
         	int index = square.getX()*size + square.getY();
-        	grid.get(index).setValue(square.getValue());
+        	grid.get(index).value = square.getValue();
         	grid.get(index).setState(State.FIXED);
         }
 	}
@@ -153,7 +153,7 @@ public class Board {
 	 * @return value of the provided cell space.
 	 */
 	public int getValue(int x, int y) {
-		return grid.get(x*size+y).getValue();
+		return grid.get(x*size+y).value;
 	}
 	
 	/**
@@ -174,7 +174,7 @@ public class Board {
 	 * @return true if the cell has the requested state, false otherwise.
 	 */
 	public boolean getState(int x, int y, State state) {
-		return grid.get(x*size+y).getState().contains(state);
+		return grid.get(x*size+y).states.contains(state);
 	}
 	
 	/**
@@ -231,7 +231,7 @@ public class Board {
 				for(int j=0; j<preMade[0].length; j++)
 					if(preMade[i][j]!=0) {
 						x = j+(i*size);
-						grid.get(x).setValue(preMade[i][j]);
+						grid.get(x).value = preMade[i][j];
 						grid.get(x).setState(State.FIXED);
 					}
 		}
@@ -250,12 +250,12 @@ public class Board {
 			return;
 		int index = lastSelected[0]*size+lastSelected[1];
 		Cell cell = grid.get(index);
-		if(cell.getState().contains(State.FIXED))
+		if(cell.states.contains(State.FIXED))
 			return;
 		if(guideMode!=0 && !isValidEntry(new int[] {lastSelected[0], lastSelected[1], num}, true))
 			return;
-		int oldNum = cell.getValue();
-		cell.setValue(num);
+		int oldNum = cell.value;
+		cell.value = num;
 		cell.setState(State.SELECTED);
 		if(num!=0 && AbstractSudokuSolver.validateSudoku(grid, size, cellDim)) // no need to check board if a 0 was just inserted
 			solved = true;
@@ -380,7 +380,7 @@ public class Board {
 		if(apply) {
 			for(int i=0; i<solution.length; i++)
 				for(int j=0; j<solution[0].length; j++)
-					grid.get(j+(i*size)).setValue(solution[i][j]);
+					grid.get(j+(i*size)).value = solution[i][j];
 			solved = true;
 		}
 		return true;

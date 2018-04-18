@@ -1,4 +1,4 @@
-package edu.utep.cs.cs3331.ard.sudoku.net;
+package edu.utep.cs.cs3331.ard.sudoku.net.json;
 
 import java.io.Closeable;
 import java.io.IOException;

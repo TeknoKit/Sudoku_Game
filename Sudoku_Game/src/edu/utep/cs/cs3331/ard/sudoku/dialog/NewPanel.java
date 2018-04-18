@@ -28,11 +28,15 @@ public class NewPanel extends JFrame {
 
 	/** Constructs a NewPanel with a parent {@link SudokuDialog}. */
 	public NewPanel(SudokuDialog parent) {
-		super("New Game");
+		setTitle("New Game");
 		configureUI(parent);
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setResizable(false);
+		setVisible(true);
 	}
 
-	/** Configures and displays the NewPanel. */
+	/** Configures the NewPanel. */
 	private void configureUI(SudokuDialog parent) {
 		JPanel size = new JPanel();
 		sizeLabel = new JLabel("Difficulty Level:", JLabel.LEFT);
@@ -87,9 +91,5 @@ public class NewPanel extends JFrame {
 		add(panel);
 		
 		pack();
-		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setResizable(false);
-		setVisible(true);
 	}
 }
