@@ -17,11 +17,11 @@ import edu.utep.cs.cs3331.ard.sudoku.model.Cell.State;
 /**
  * A special panel class to display a Sudoku board modeled by the
  * {@link edu.utep.cs.cs3331.ard.sudoku.model.Board} class.
- *
+ * 
  * @author		Anthony DesArmier
  * @author 		Trevor McCarthy
  * @author		Yoonsik Cheon
- * @version     1.2.1
+ * @version     1.3
  */
 @SuppressWarnings("serial")
 public class BoardPanel extends JPanel {
@@ -62,7 +62,7 @@ public class BoardPanel extends JPanel {
         	setPreferredSize(new Dimension (268, 268));
         else if(board.getSize()==9)
         	setPreferredSize(new Dimension (270, 270));
-        pointingCell = new int[2];
+        pointingCell = new int[] {-1, -1};
         MouseAdapter mouse = new MouseAdapter() {
             @Override
 			public void mouseClicked(MouseEvent e) {
@@ -93,8 +93,8 @@ public class BoardPanel extends JPanel {
         addMouseListener(mouse);
         addMouseMotionListener(mouse);
     }
-    
-    /**
+
+	/**
 	 * Getter for {@link #squareSize}.
 	 * @return {@link #squareSize}
 	 */
@@ -107,6 +107,9 @@ public class BoardPanel extends JPanel {
 	 */
     public void setBoard(Board board) {
     	this.board = board;
+    	if (board.getSize() == 9)
+    		
+    	repaint();
     }
     
     /**
@@ -152,11 +155,11 @@ public class BoardPanel extends JPanel {
         }
         int x=0, y=0;
         for(Cell cell : board.getGrid()) {
-        	if(cell.getState().contains(State.FIXED)) {
+        	if(cell.getState(State.FIXED)) {
         		g.setColor(FIXED_COLOR);
         		g.fillRect(x, y, squareSize, squareSize);
         	}
-        	if(cell.getState().contains(State.ERROR)) {
+        	if(cell.getState(State.ERROR)) {
         		g.setColor(ERROR_COLOR);
         		g.fillOval(x+squareSize/4, y+squareSize/4,
 	        			squareSize/2, squareSize/2);

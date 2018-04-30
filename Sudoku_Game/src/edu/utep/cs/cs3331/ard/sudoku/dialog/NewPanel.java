@@ -20,14 +20,16 @@ public class NewPanel extends JFrame {
 	private JLabel diffLabel, sizeLabel;
 	private JRadioButton s1, s2, d1, d2, d3;
 	private JButton b1, b2;
+	protected SudokuDialog parent;
 	
-	/** Contructs a NewPanel without a parent frame. */
+	/** Constructs a NewPanel without a parent frame. */
 	public NewPanel() {
 		this(null);
 	}
 
 	/** Constructs a NewPanel with a parent {@link SudokuDialog}. */
 	public NewPanel(SudokuDialog parent) {
+		this.parent = parent;
 		setTitle("New Game");
 		configureUI(parent);
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -38,15 +40,15 @@ public class NewPanel extends JFrame {
 
 	/** Configures the NewPanel. */
 	private void configureUI(SudokuDialog parent) {
-		JPanel size = new JPanel();
-		sizeLabel = new JLabel("Difficulty Level:", JLabel.LEFT);
+		JPanel sizePanel = new JPanel();
+		sizeLabel = new JLabel("Board Size:", JLabel.LEFT);
 		s1 = new JRadioButton("4x4");
 		s2 = new JRadioButton("9x9");
 		ButtonGroup sizeGroup = new ButtonGroup();
 		sizeGroup.add(s1); sizeGroup.add(s2);
 		
-		JPanel diff = new JPanel();
-		diffLabel = new JLabel("Board Size:", JLabel.LEFT);
+		JPanel diffPanel = new JPanel();
+		diffLabel = new JLabel("Difficulty Level:", JLabel.LEFT);
 		d1 = new JRadioButton("Easy");
 		d2 = new JRadioButton("Normal");
 		d3 = new JRadioButton("Hard");
@@ -56,40 +58,51 @@ public class NewPanel extends JFrame {
 		JPanel buttons = new JPanel();
 		b1 = new JButton("Play"); 
 		b1.addActionListener(e -> {
-				int sizeVal = -1;
-				int diffVal = -1;
-				if(s1.isSelected()) sizeVal = 4;
-				else if(s2.isSelected()) sizeVal = 9;
-				if(d1.isSelected()) diffVal = 1;
-				else if(d2.isSelected()) diffVal = 2;
-				else if(d3.isSelected()) diffVal = 3;
-				if(sizeVal!=-1 && diffVal!=-1) {
+				int size = -1;
+				int difficulty = -1;
+				if(s1.isSelected()) size = 4;
+				else if(s2.isSelected()) size = 9;
+				if(d1.isSelected()) difficulty = 1;
+				else if(d2.isSelected()) difficulty = 2;
+				else if(d3.isSelected()) difficulty = 3;
+				if(size!=-1 && difficulty!=-1) {
 					dispose();
-					if(parent!=null) {
-						parent.shutDown();
-					}
-					new SudokuDialog(sizeVal, diffVal);
+					//if(parent!=null)
+						//parent.shutDown();
+					createDialog(size, difficulty);
 				}
 		});
 		b2 = new JButton("Cancel");
 		b2.addActionListener(e -> dispose());
 		
-		size.setAlignmentX(Component.CENTER_ALIGNMENT);
-		diff.setAlignmentX(Component.CENTER_ALIGNMENT);
+		sizePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		diffPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 		buttons.setAlignmentX(Component.LEFT_ALIGNMENT);
 		
-		size.add(sizeLabel); size.add(s1); size.add(s2);
-		diff.add(diffLabel); diff.add(d1); diff.add(d2); diff.add(d3);
+		sizePanel.add(sizeLabel); sizePanel.add(s1); sizePanel.add(s2);
+		diffPanel.add(diffLabel); diffPanel.add(d1); diffPanel.add(d2); diffPanel.add(d3);
 		buttons.add(b1); buttons.add(b2);
 
 		JPanel panel = new JPanel();
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-		panel.add(size);
-		panel.add(diff);
+		panel.add(sizePanel);
+		panel.add(diffPanel);
 		panel.add(buttons);
 		
 		add(panel);
 		
 		pack();
+	}
+
+	/**
+	 * Constructs a new {@link SudokuDialog}.
+	 * @param size Sudoku game board size.
+     * @param difficulty Sudoku game difficulty.
+	 */
+	protected void createDialog(int size, int difficulty) {
+		if(parent == null)
+			new SudokuDialog(size, difficulty);
+		else
+			parent.startNewBoard(size, difficulty);
 	}
 }

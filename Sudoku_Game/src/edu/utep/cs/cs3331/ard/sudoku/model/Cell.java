@@ -45,7 +45,6 @@ public class Cell {
 	}
 	
 	/**
-	 * Getter for {@link #value}.
 	 * @return {@link #value}
 	 */
 	public int getValue() {
@@ -53,18 +52,26 @@ public class Cell {
 	}
 
 	/**
-	 * Setter for {@link #value}.
+	 * @param value {@link #value}.
 	 */
 	public void setValue(int value) {
 		this.value = value;
 	}
 
 	/**
-	 * Getter for {@link #states}.
 	 * @return {@link #states}
 	 */
-	public Set<State> getState() {
+	public Set<State> getStates() {
 		return states;
+	}
+	
+	/**
+	 * Checks if a given state is present.
+	 * @param state state to check for.
+	 * @return true is the state is present, false otherwise.
+	 */
+	public boolean getState(State state) {
+		return (states.contains(state)) ? true : false;
 	}
 
 	/**

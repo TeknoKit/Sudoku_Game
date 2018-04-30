@@ -14,6 +14,7 @@ import edu.utep.cs.cs3331.ard.sudoku.net.json.JsonSquare;
 
 /**
  * Sudoku game board and various game logic.
+ * 
  * @author      Anthony DesArmier
  * @version     1.3
  */
@@ -77,6 +78,20 @@ public class Board {
 	}
 	
 	/**
+	 * Generates a Sudoku game board of a given size and populates it with a pre-made list.
+	 * @param size size of the board.
+	 * @param list list of {x, y, z, state} tuples that define new cells.
+	 */
+	public Board(int size, int... list) {
+		this(size);
+		for(int i=0; i<list.length; i+=4) {
+			grid.get(list[i+1]*size+list[i]).value = list[i+2];
+			if(list[i+3]==1)
+				grid.get(list[i+1]*size+list[i]).setState(State.FIXED);
+		}
+	}
+	
+	/**
 	 * Generates an empty Sudoku game board of a default size (9).
 	 */
 	public Board() {
@@ -84,7 +99,6 @@ public class Board {
 	}
 
 	/**
-	 * Getter for {@link #size}.
 	 * @return {@link #size}
 	 */
 	public int getSize() {
@@ -92,7 +106,6 @@ public class Board {
 	}
 	
 	/**
-	 * Getter for {@link #cellDim}.
 	 * @return {@link #cellDim}
 	 */
 	public int getCellDim() {
@@ -100,7 +113,6 @@ public class Board {
 	}
 	
 	/**
-	 * Getter for {@link #solved}.
 	 * @return {@link #solved}
 	 */
 	public boolean isSolved() {
@@ -108,7 +120,6 @@ public class Board {
 	}
 	
 	/**
-	 * Getter for {@link #grid}.
 	 * @return {@link #grid}
 	 */
 	public List<Cell> getGrid() {
@@ -116,7 +127,6 @@ public class Board {
 	}
 	
 	/**
-	 * Getter for {@link #lastSelected}.
 	 * @return {@link #lastSelected}
 	 */
 	public int[] getLastSelected() {
@@ -124,7 +134,6 @@ public class Board {
 	}
 	
 	/**
-	 * Getter for {@link #sameSelected}.
 	 * @return {@link #sameSelected}
 	 */
 	public boolean isSameSelected() {
@@ -178,7 +187,6 @@ public class Board {
 	}
 	
 	/**
-	 * Getter for {@link #guideMode}.
 	 * @return {@link #guideMode}
 	 */
 	public int getGuideMode() {
@@ -186,7 +194,6 @@ public class Board {
 	}
 
 	/**
-	 * Setter for {@link #guideMode}.
 	 * @param {@link #guideMode}
 	 */
 	public void setGuideMode(int guideMode) {
@@ -203,7 +210,6 @@ public class Board {
 		guideMode=(guideMode+1)%3;
 		if(this.guideMode!=2)
 			clearErrors();
-		//System.out.println("GuideMode: "+guideMode);
 	}
 	
 	/**
@@ -214,14 +220,30 @@ public class Board {
 		return !(lastSelected[0]==-1 && lastSelected[1]==-1);
 	}
 	
+	/** Returns this board grid as list of {x, y, z, state} tuples that define new cells. */
+	public int[] toArr() {
+		int i = 0;
+		ArrayList<Integer> list = new ArrayList<>();
+		for(Cell c : grid ) {
+			if(c.getValue() != 0) {
+				list.add(i%size); // x
+				list.add(i/size); // y
+				list.add(c.getValue()); // value
+				list.add((c.getState(State.FIXED) ? 1 : 0)); // fixed state or not
+			}
+			i++;
+		}
+		return list.stream().mapToInt(Integer::intValue).toArray();
+	}
+	
 	/**
 	 * Constructs a grid representation of a Sudoku game board.
 	 * @param size size of the board.
 	 * @param difficulty 0 - empty, 1 - easy, 2 - normal, 3 - difficult.
 	 */
 	private final void generateGrid(int size, int difficulty) {
-		this.cellDim = (int)Math.sqrt(size); // Should be a perfect square
 		grid = new ArrayList<>(size*size);
+		this.cellDim = (int)Math.sqrt(size); // Should be a perfect square
 		for(int i=0; i<size*size; i++)
 			grid.add(new Cell());
 		if(difficulty!=0) {
@@ -245,15 +267,18 @@ public class Board {
 	 * @param num number to insert.
 	 * @param fresh whether this is a new action or an undo/redo action.
 	 */
-	public void update(int num, boolean fresh) {
-		if((solved && num!=0) || lastSelected[0]<0 || lastSelected[1]<0)
-			return;
+	public boolean update(int num, boolean fresh) {
+		if((solved && num!=0) || lastSelected[0]<0 || lastSelected[1]<0) {
+			return false;
+		}
 		int index = lastSelected[0]*size+lastSelected[1];
 		Cell cell = grid.get(index);
-		if(cell.states.contains(State.FIXED))
-			return;
-		if(guideMode!=0 && !isValidEntry(new int[] {lastSelected[0], lastSelected[1], num}, true))
-			return;
+		if(cell.states.contains(State.FIXED)) {
+			return false;
+		}
+		if(guideMode!=0 && !isValidEntry(new int[] {lastSelected[0], lastSelected[1], num}, true)) {
+			return true; // Do not reject the update but block it anyway
+		}
 		int oldNum = cell.value;
 		cell.value = num;
 		cell.setState(State.SELECTED);
@@ -265,17 +290,19 @@ public class Board {
 			undo.push(new int[] {lastSelected[0], lastSelected[1], oldNum});
 			redo.clear();
 		}
+		return true;
 	}
 	
 	/**
 	 * Inserts a value into a given cell space on the Sudoku game board if valid.
 	 * @param values x,y and z values corresponding to the Sudoku game board position and value.
 	 * @param fresh whether this is a new action or an undo/redo action.
+	 * @return 
 	 */
-	public void update(int[] values, boolean fresh) {
+	public boolean update(int[] values, boolean fresh) {
 		lastSelected[0] = values[0];
 		lastSelected[1] = values[1];
-		update(values[2], fresh);
+		return update(values[2], fresh);
 	}
 
 	/**

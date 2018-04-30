@@ -203,6 +203,7 @@ public class DancingLinks {
 	 * Selects the first column.
 	 * @return ColumnNode of the first column.
 	 */
+	@SuppressWarnings("unused")
 	private ColumnNode selectColumnNodeNaive() {
 		return (ColumnNode) header.R;
 	}
@@ -227,6 +228,7 @@ public class DancingLinks {
 	 * Selects a column randomly.
 	 * @return ColumnNode of a column.
 	 */
+	@SuppressWarnings("unused")
 	private ColumnNode selectColumnNodeRandom() {
 		ColumnNode ptr = (ColumnNode) header.R;
 		ColumnNode ret = null;
@@ -247,6 +249,7 @@ public class DancingLinks {
 	 * @param n the index of column to return.
 	 * @return ColumnNode of the nth column.
 	 */
+	@SuppressWarnings("unused")
 	private ColumnNode selectColumnNodeNth(int n) {
 		int go = n % header.size;
 		ColumnNode ret = (ColumnNode) header.R;
@@ -258,6 +261,7 @@ public class DancingLinks {
 	/**
 	 * Prints the board state.
 	 */
+	@SuppressWarnings("unused")
 	private void printBoard() {
 		System.out.println("Board Config: ");
 		for (ColumnNode tmp = (ColumnNode) header.R; tmp != header; tmp = (ColumnNode) tmp.R) {

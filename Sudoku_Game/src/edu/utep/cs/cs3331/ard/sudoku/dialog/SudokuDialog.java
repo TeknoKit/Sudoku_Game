@@ -35,7 +35,7 @@ import edu.utep.cs.cs3331.ard.sudoku.model.Board;
 
 /**
  * Dialog template for playing simple Sudoku games.
- *
+
  * @author		Yoonsik Cheon
  * @author		Anthony DesArmier
  * @author 		Trevor McCarthy
@@ -45,18 +45,28 @@ import edu.utep.cs.cs3331.ard.sudoku.model.Board;
 public class SudokuDialog extends JFrame {
 
     /** Default dimension of the dialog. */
-    private final static Dimension DEFAULT_DIM = new Dimension(330, 430);
+    protected final static Dimension DEFAULT_DIM = new Dimension(330, 430);
     /** Default size of the Sudoku game board. */
     private final static int DEFAULT_SIZE = 9;
     /** Default difficulty of the Sudoku game board. */
     private final static int DEFAULT_DIFFICULTY = 1;
+    /** Wireless icon for unconnected status. */
+    protected final ImageIcon WIRELESS_N = createImageIcon("/wireless16.png");
+    /** Wireless icon for connected status. */
+    protected final ImageIcon WIRELESS_G = createImageIcon("/wireless16green.png");
+    /** Zero (0) icon. */
+    private final ImageIcon ZERO = createImageIcon("/00s.png");
+    /** One (1) icon. */
+    private final ImageIcon ONE = createImageIcon("/01s.png");
+    /** Two (2) icon. */
+    private final ImageIcon TWO = createImageIcon("/02s.png");
     
     /** Click clip to be used on the panel. */
     private Clip clip;
     /** Sudoku board. */
-    private Board board;
+    protected Board board;
     /** Special panel to display a Sudoku board. */
-    private BoardPanel boardPanel;
+    protected BoardPanel boardPanel;
     /** Message bar to display various messages. */
     private JLabel msgBar = new JLabel("");
     /** List of buttons representing the number pad. */
@@ -66,6 +76,10 @@ public class SudokuDialog extends JFrame {
 	
 	private JMenuItem input;
 	private JButton inputB;
+	protected JToolBar toolBar;
+	protected JMenuBar menuBar;
+	protected JPanel mainPanel;
+	private JPanel buttons;
 
     /** Create a new dialog with default values. */
     public SudokuDialog() {
@@ -100,12 +114,43 @@ public class SudokuDialog extends JFrame {
         setResizable(false);
         setVisible(true);
     }
+    
+	/**
+	 * Starts a Sudoku game board of a given size and difficulty.
+	 * @param size size of the board.
+	 * @param list list of {x, y, z, state} tuples that define new cells.
+	 */
+	public void startNewBoard(int size, int difficulty) {
+		board = new Board(size, difficulty);
+		configureNewBoard();
+		configureControlPanel();
+	}
 
+	/** Configures a new boardPanel and replaces the old boardPanel. */
+	protected void configureNewBoard() {
+		int index = getComponentZOrder(boardPanel);
+		mainPanel.remove(boardPanel);
+		boardPanel = new BoardPanel(board, this::boardClicked);
+        mainPanel.add(boardPanel, boardPanelConstraints(), index);
+		validate();
+		repaint();
+	}
+	
+	/** Configures a new controlPanel and replaces the old controlPanel. */
+	protected void configureControlPanel() {
+		int index = getComponentZOrder(buttons);
+		mainPanel.remove(buttons);
+		buttons = makeControlPanel();
+        mainPanel.add(buttons, controlPanelConstraints(), index);
+        validate();
+		repaint();
+	}
+	
     /**
      * Display the given string in the message bar.
      * @param msg message to be displayed.
      */
-    private void showMessage(String msg) {
+    public void showMessage(String msg) {
         msgBar.setText(msg);
     }
 
@@ -114,13 +159,59 @@ public class SudokuDialog extends JFrame {
         setIconImage(createImageIcon("/sudoku.png").getImage());
         setLayout(new BorderLayout());
         
-        JMenuBar menuBar = new JMenuBar();
+        createMenu();
+        createToolbar();
+    	
+    	mainPanel = new JPanel(); 
+    	mainPanel.setLayout(new GridBagLayout());
+    	
+        buttons = makeControlPanel();
+        mainPanel.add(buttons, controlPanelConstraints());
+        
+        mainPanel.add(boardPanel, boardPanelConstraints());
+        
+        msgBar.setPreferredSize(new Dimension(120, 12));
+        msgBar.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+      
+        mainPanel.add(msgBar, msgBarConstraints());
+        
+        add(mainPanel, BorderLayout.CENTER);
+    }
+    
+    private GridBagConstraints boardPanelConstraints() {
+    	GridBagConstraints c = new GridBagConstraints();
+        c.weighty = 1.0; 
+        c.gridx = 0;
+        c.gridy = 1;
+        return c;
+    }
+    
+    private GridBagConstraints controlPanelConstraints() {
+    	GridBagConstraints c = new GridBagConstraints();
+    	c.anchor = GridBagConstraints.PAGE_START;
+        c.gridx = 0;
+        c.gridy = 0;
+        return c;
+	}
+
+	private GridBagConstraints msgBarConstraints() {
+		GridBagConstraints c = new GridBagConstraints();
+		c.anchor = GridBagConstraints.LAST_LINE_START;
+		c.ipady = 12;
+		c.gridx = 0;
+		c.gridy = 2;
+		return c;
+	}
+
+	/** Configures the menu. */
+	protected void createMenu() {
+		menuBar = new JMenuBar();
         JMenu game = new JMenu("Game");
         game.setMnemonic(KeyEvent.VK_G);
         JMenuItem newGame = new JMenuItem("New Game", KeyEvent.VK_N);
         newGame.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
         newGame.setIcon(createImageIcon("/toolbarButtonGraphics/media/Play16.gif"));
-        newGame.addActionListener(e -> {playClick(); new NewPanel(this);});
+        newGame.addActionListener(this::newClicked);
         game.add(newGame);
         game.addSeparator();
         JMenuItem undo = new JMenuItem("Undo", KeyEvent.VK_Z);
@@ -141,15 +232,6 @@ public class SudokuDialog extends JFrame {
         game.add(exit);
         menuBar.add(game);
         
-        JMenu network = new JMenu("Network");
-        network.setMnemonic(KeyEvent.VK_N);
-        JMenuItem multiplayer = new JMenuItem("Multiplayer", KeyEvent.VK_M);
-        multiplayer.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, ActionEvent.CTRL_MASK));
-        multiplayer.setIcon(createImageIcon("/wireless16.png"));
-        multiplayer.addActionListener(this::wirelessClicked);
-        network.add(multiplayer);
-        menuBar.add(network);
-        
         JMenu help = new JMenu("Help");
         help.setMnemonic(KeyEvent.VK_H);
         JMenuItem check = new JMenuItem("Check Progress", KeyEvent.VK_C);
@@ -159,7 +241,7 @@ public class SudokuDialog extends JFrame {
         help.add(check);
         input = new JMenuItem("Input Guide", KeyEvent.VK_I);
         input.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
-        input.setIcon(createImageIcon("/00s.png"));
+        input.setIcon(ZERO);
         input.addActionListener(this::inputGuideClicked);
         help.add(input);
         JMenuItem solve = new JMenuItem("Solve", KeyEvent.VK_V);
@@ -169,12 +251,14 @@ public class SudokuDialog extends JFrame {
         help.add(solve);
         menuBar.add(help);
         setJMenuBar(menuBar);
-        
-        
-        JToolBar toolBar = new JToolBar();
+	}
+
+    /** Configures the toolbar. */
+	protected void createToolbar() {
+		toolBar = new JToolBar();
         JButton newGameB = new JButton(createImageIcon("/toolbarButtonGraphics/media/Play16.gif"));
         newGameB.setToolTipText("Start a new game");
-    	newGameB.addActionListener(e -> {playClick(); new NewPanel(this);});
+    	newGameB.addActionListener(this::newClicked);
     	newGameB.setFocusPainted(false);
     	toolBar.add(newGameB);
     	JButton checkB = new JButton(createImageIcon("/toolbarButtonGraphics/general/Information16.gif"));
@@ -182,7 +266,7 @@ public class SudokuDialog extends JFrame {
     	checkB.addActionListener(this::checkClicked);
     	checkB.setFocusPainted(false);
     	toolBar.add(checkB);
-    	inputB = new JButton(createImageIcon("/00s.png"));
+    	inputB = new JButton(ZERO);
     	inputB.setToolTipText("Toggle input guide help modes");
     	inputB.addActionListener(this::inputGuideClicked);
     	inputB.setFocusPainted(false);
@@ -202,40 +286,8 @@ public class SudokuDialog extends JFrame {
     	redoB.addActionListener(this::redoClicked);
     	redoB.setFocusPainted(false);
     	toolBar.add(redoB);
-    	JButton networkB = new JButton(createImageIcon("/wireless16.png"));
-    	networkB.setToolTipText("Play with another player");
-    	networkB.addActionListener(this::wirelessClicked);
-    	networkB.setFocusPainted(false);
-    	toolBar.add(networkB);
     	add(toolBar, BorderLayout.NORTH);
-    	
-    	JPanel mainPanel = new JPanel(); 
-    	mainPanel.setLayout(new GridBagLayout());
-    	GridBagConstraints c = new GridBagConstraints();
-    	
-        JPanel buttons = makeControlPanel();
-        c.anchor = GridBagConstraints.PAGE_START;
-        c.gridx = 0;
-        c.gridy = 0;
-        mainPanel.add(buttons, c);
-        
-        c = new GridBagConstraints();
-        c.weighty = 1.0; 
-        c.gridx = 0;
-        c.gridy = 1;
-        mainPanel.add(boardPanel, c);
-        
-        msgBar.setPreferredSize(new Dimension(120, 12));
-        msgBar.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-        c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.LAST_LINE_START;
-        c.ipady = 12;
-        c.gridx = 0;
-        c.gridy = 2;
-        mainPanel.add(msgBar, c);
-        
-        add(mainPanel, BorderLayout.CENTER);
-    }
+	}
     
     /** 
      * Create a control panel consisting of number buttons.
@@ -306,7 +358,7 @@ public class SudokuDialog extends JFrame {
 	}
     
     /** Plays a specific sound file. */
-    private void playClick() {
+    protected void playClick() {
     	if (clip.isRunning())
     		clip.stop();
     	clip.setFramePosition(0);
@@ -317,7 +369,7 @@ public class SudokuDialog extends JFrame {
      * Create an image icon from the given image file.
      * @return configured ImageIcon.
      */
-    private ImageIcon createImageIcon(String filename) {
+    protected ImageIcon createImageIcon(String filename) {
         //URL imageUrl = getClass().getResource(filename);
     	BufferedImage image = null;
 		try {
@@ -331,7 +383,7 @@ public class SudokuDialog extends JFrame {
     }
     
     /** Properly shuts down this object and all related streams. */
-    public void shutDown() {
+    protected void shutDown() {
     	clip.close();
     	dispose();
     }
@@ -345,12 +397,18 @@ public class SudokuDialog extends JFrame {
     	new NewPanel();
     }
     
+    /** ClickListener for newGame buttons. */
+	protected void newClicked(ActionEvent e) {
+		playClick();
+		new NewPanel(this);
+	}
+    
 	/**
      * Callback to be invoked when a square of the board is clicked.
      * @param x 0-based row index of the clicked square.
      * @param y 0-based column index of the clicked square.
      */
-    private void boardClicked(int x, int y) {
+    protected void boardClicked(int x, int y) {
 		playClick();
 		board.select(x, y);
 		boardPanel.repaint();
@@ -363,7 +421,7 @@ public class SudokuDialog extends JFrame {
      * Callback to be invoked when a number button is clicked.
      * @param number clicked number (1-9), or 0 for "X".
      */
-    private void numberClicked(int number) {
+    protected void numberClicked(int number) {
     	playClick();
     	board.update(number, true);
     	boardPanel.repaint();
@@ -387,23 +445,24 @@ public class SudokuDialog extends JFrame {
 		handlePadEnables();
 		switch (board.getGuideMode()) {
 			case 0:
-				input.setIcon(createImageIcon("/00s.png"));
-				inputB.setIcon(createImageIcon("/00s.png"));
+				input.setIcon(ZERO);
+				inputB.setIcon(ZERO);
 				break;
 			case 1:
-				input.setIcon(createImageIcon("/01s.png"));
-				inputB.setIcon(createImageIcon("/01s.png"));
+				input.setIcon(ONE);
+				inputB.setIcon(ONE);
 				break;
 			case 2:
-				input.setIcon(createImageIcon("/02s.png"));
-				inputB.setIcon(createImageIcon("/02s.png"));
+				input.setIcon(TWO);
+				inputB.setIcon(TWO);
 				break;
 			default: System.out.println("Could not set InputGuide icon. Invalid input guide state: " + board.getGuideMode());
 		}
 	}
 	
     /** ClickListener for solve buttons.*/
-    private void solveClicked(ActionEvent e) {
+    protected void solveClicked(ActionEvent e) {
+    	showMessage("");
 		playClick();
 		if(board.solve(true))
 			boardPanel.repaint();
@@ -412,22 +471,16 @@ public class SudokuDialog extends JFrame {
 	}
 	
     /** ClickListener for undo buttons.*/
-    private void undoClicked(ActionEvent e) {
+    protected void undoClicked(ActionEvent e) {
 		playClick();
 		board.undo();
 		boardPanel.repaint();
 	}
 	
     /** ClickListener for redo buttons.*/
-    private void redoClicked(ActionEvent e) {
+    protected void redoClicked(ActionEvent e) {
 		playClick();
 		board.redo();
 		boardPanel.repaint();
-	}
-    
-    /** ClickListener for redo buttons.*/
-    private void wirelessClicked(ActionEvent e) {
-		playClick();
-		new NetworkWindow();
-	}
+    }
 }
