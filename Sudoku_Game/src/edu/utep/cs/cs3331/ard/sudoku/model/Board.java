@@ -223,7 +223,7 @@ public class Board {
 	/** Returns this board grid as list of {x, y, z, state} tuples that define new cells. */
 	public int[] toArr() {
 		int i = 0;
-		ArrayList<Integer> list = new ArrayList<>();
+		List<Integer> list = new ArrayList<>();
 		for(Cell c : grid ) {
 			if(c.getValue() != 0) {
 				list.add(i%size); // x
@@ -326,7 +326,7 @@ public class Board {
 	 * Searches for all invalid inputs for the last selected cell.
 	 * @return list of invalid input values.
 	 */
-	public ArrayList<Integer> invalidInputs() {
+	public List<Integer> invalidInputs() {
 		return invalidInputs(lastSelected);
 	}
 	
@@ -334,8 +334,8 @@ public class Board {
 	 * Searches for all invalid inputs for a given cell.
 	 * @return list of invalid input values.
 	 */
-	public ArrayList<Integer> invalidInputs(int[] cell) {
-		ArrayList<Integer> invalids = new ArrayList<>();
+	public List<Integer> invalidInputs(int[] cell) {
+		List<Integer> invalids = new ArrayList<>();
 		for(int i=1; i<=size; i++)
 			if(!isValidEntry(new int[] {cell[0], cell[1], i}, false))
 				invalids.add(i);

@@ -12,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioInputStream;
@@ -326,7 +327,7 @@ public class SudokuDialog extends JFrame {
 			else return;
 		}
 		else if(board.getGuideMode() == 1 && board.cellSelected()) {
-			ArrayList<Integer> invalids = board.invalidInputs();
+			List<Integer> invalids = board.invalidInputs();
 			int n = 1;
 			for(JButton num : numPad) {
 				if (invalids.contains(n))
