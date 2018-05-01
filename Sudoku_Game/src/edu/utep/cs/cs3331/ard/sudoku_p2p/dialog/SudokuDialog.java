@@ -163,6 +163,7 @@ public class SudokuDialog extends edu.utep.cs.cs3331.ard.sudoku.dialog.SudokuDia
 		board = new Board(size, list);
 		configureNewBoard();
 		configureControlPanel();
+		setGuideMode();
 	}
 	
     /**

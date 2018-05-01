@@ -42,7 +42,7 @@ public class NetworkWindow extends JFrame {
 	private String host;
 	//InetAddress host;
 	/** Default server port. */
-	private int port = 8000;
+	public int port = 8000;
 	
 	/** Attached NetWorkManager. */
 	NetworkManager netMan;

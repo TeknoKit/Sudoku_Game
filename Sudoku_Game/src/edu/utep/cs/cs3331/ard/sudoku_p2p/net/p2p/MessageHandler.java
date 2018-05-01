@@ -52,7 +52,7 @@ public class MessageHandler implements edu.utep.cs.cs3331.ard.sudoku_p2p.net.p2p
 			}
 			break;
 		case FILL:
-			if(board.update(new int[] {x, y, z}, true)) {
+			if(board.update(new int[] {x, y, z}, true, true)) {
 				boardPanel.repaint();
 				netWin.logMessage(String.format("FILL accepted: x:%d, y:%d, z:%d.", x, y, z));
 			}
@@ -115,6 +115,7 @@ public class MessageHandler implements edu.utep.cs.cs3331.ard.sudoku_p2p.net.p2p
 			break;
 		case SOLVE:
 			netWin.logMessage("Peer has used the solver.");
+			root.showMessage("");
 			if(board.solve(true))
 				boardPanel.repaint();
 	    	else

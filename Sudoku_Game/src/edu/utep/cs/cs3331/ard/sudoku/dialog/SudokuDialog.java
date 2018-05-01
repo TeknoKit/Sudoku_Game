@@ -70,7 +70,7 @@ public class SudokuDialog extends JFrame {
     /** Message bar to display various messages. */
     private JLabel msgBar = new JLabel("");
     /** List of buttons representing the number pad. */
-    private ArrayList<JButton> numPad = new ArrayList<>();
+    private ArrayList<JButton> numPad;
     /** Whether the entire number pad needs to be enabled. */
 	private boolean numPadEnable;
 	
@@ -124,6 +124,7 @@ public class SudokuDialog extends JFrame {
 		board = new Board(size, difficulty);
 		configureNewBoard();
 		configureControlPanel();
+		setGuideMode();
 	}
 
 	/** Configures a new boardPanel and replaces the old boardPanel. */
@@ -294,6 +295,7 @@ public class SudokuDialog extends JFrame {
      * @return configured JPanel.
      */
     private JPanel makeControlPanel() {
+    	numPad = new ArrayList<>();
     	numPadEnable = false;
     	// buttons labeled 1, 2, ..., 9, and X.
     	JPanel numberButtons = new JPanel(new FlowLayout());
@@ -423,7 +425,7 @@ public class SudokuDialog extends JFrame {
      */
     protected void numberClicked(int number) {
     	playClick();
-    	board.update(number, true);
+    	board.update(number, true, false);
     	boardPanel.repaint();
     	showMessage("");
     }
@@ -442,7 +444,11 @@ public class SudokuDialog extends JFrame {
 		playClick();
 		board.incGuideMode();
     	boardPanel.repaint();
-		handlePadEnables();
+		setGuideMode();
+	}
+
+    /** Sets the guide mode of the Dialog to the board. */
+	protected void setGuideMode() {
 		switch (board.getGuideMode()) {
 			case 0:
 				input.setIcon(ZERO);
@@ -458,6 +464,7 @@ public class SudokuDialog extends JFrame {
 				break;
 			default: System.out.println("Could not set InputGuide icon. Invalid input guide state: " + board.getGuideMode());
 		}
+		handlePadEnables();
 	}
 	
     /** ClickListener for solve buttons.*/

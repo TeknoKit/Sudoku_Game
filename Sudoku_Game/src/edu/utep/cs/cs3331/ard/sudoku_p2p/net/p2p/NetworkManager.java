@@ -42,14 +42,13 @@ public class NetworkManager {
 	 */
 	public NetworkManager (NetworkWindow netWin) {
 		this.netWin = netWin;
-		port = 8000;
 		lastFill = new int[3];
 		connected = true;
 	}
 
 	/** Starts a new server socket on a new thread. */
 	public void startServer() {
-		port = 8000;
+		port = netWin.port;
 		server = new Thread(() -> {
 			boolean connecting = true;
 			while (connecting) {

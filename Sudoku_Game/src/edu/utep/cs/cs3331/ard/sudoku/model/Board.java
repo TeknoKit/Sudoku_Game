@@ -266,8 +266,9 @@ public class Board {
 	 * Inserts a value into the last selected cell space on the Sudoku game board if valid.
 	 * @param num number to insert.
 	 * @param fresh whether this is a new action or an undo/redo action.
+	 * @param fillOverride whether this update originated as a fill message and should ignore any input guide rules.
 	 */
-	public boolean update(int num, boolean fresh) {
+	public boolean update(int num, boolean fresh, boolean fillOverride) {
 		if((solved && num!=0) || lastSelected[0]<0 || lastSelected[1]<0) {
 			return false;
 		}
@@ -276,9 +277,10 @@ public class Board {
 		if(cell.states.contains(State.FIXED)) {
 			return false;
 		}
-		if(guideMode!=0 && !isValidEntry(new int[] {lastSelected[0], lastSelected[1], num}, true)) {
-			return true; // Do not reject the update but block it anyway
-		}
+		if(!fillOverride)
+			if(guideMode!=0 && !isValidEntry(new int[] {lastSelected[0], lastSelected[1], num}, true)) {
+				return true; // Do not reject the update but block it anyway
+			}
 		int oldNum = cell.value;
 		cell.value = num;
 		cell.setState(State.SELECTED);
@@ -297,12 +299,13 @@ public class Board {
 	 * Inserts a value into a given cell space on the Sudoku game board if valid.
 	 * @param values x,y and z values corresponding to the Sudoku game board position and value.
 	 * @param fresh whether this is a new action or an undo/redo action.
+	 * @param fillOverride whether this update originated as a fill message and should ignore any input guide rules.
 	 * @return 
 	 */
-	public boolean update(int[] values, boolean fresh) {
+	public boolean update(int[] values, boolean fresh, boolean fillOverride) {
 		lastSelected[0] = values[0];
 		lastSelected[1] = values[1];
-		return update(values[2], fresh);
+		return update(values[2], fresh, fillOverride);
 	}
 
 	/**
@@ -425,7 +428,7 @@ public class Board {
 			return;
 		int[] action = undo.pop();
 		int num = getValue(action[0], action[1]);
-		update(action, false);
+		update(action, false, true);
 		redo.push(new int[] {action[0], action[1], num});
 	}
 	
@@ -435,7 +438,7 @@ public class Board {
 			return;
 		int[] action = redo.pop();
 		int num = getValue(action[0], action[1]);
-		update(action, false);
+		update(action, false, true);
 		undo.push(new int[] {action[0], action[1], num});
 	}
 }
